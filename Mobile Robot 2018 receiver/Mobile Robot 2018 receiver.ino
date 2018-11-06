@@ -7,10 +7,10 @@
 
 #define ONE_MS 1
 
-RF24 radio(26, 27);
+RF24 radio(14, 15);
 
 const byte rxAddr[6] = {'1','N','o','d','e','0'};
-byte incoming_message[10];
+byte incoming_message[6];
 
 unsigned long long now, last_message_read;
 
@@ -27,22 +27,29 @@ void setup()
 void loop()
 {
 	now = millis();
-	//readRadio(ONE_MS);
-	if (radio.available())
+	readRadio(0);
+	/*if (radio.available())
 	{
 		radio.read(&incoming_message, sizeof(incoming_message));
 		printMessage();
-	}
+	}*/
 }
 
 void readRadio(int period)
 {
+	
 	if (now - last_message_read >= period)
 	{
+		///Serial.println("In function");
 		if (radio.available())
 		{
+			//Serial.println("Radio available");
 			radio.read(&incoming_message, sizeof(incoming_message));
 			printMessage();
+		}
+		else
+		{
+			//Serial.println("Radio not available");
 		}
 	}
 }
