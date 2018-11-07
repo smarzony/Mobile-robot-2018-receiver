@@ -116,7 +116,7 @@
     <None Include="radio_handling.ino">
       <FileType>CppCode</FileType>
     </None>
-    <None Include="SerialPrint.ino">
+    <None Include="serial_print.ino">
       <FileType>CppCode</FileType>
     </None>
   </ItemGroup>

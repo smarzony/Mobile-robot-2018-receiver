@@ -17,8 +17,8 @@
   <ItemGroup>
     <None Include="Mobile Robot 2018 receiver.ino" />
     <None Include="current_measuring.ino" />
-    <None Include="SerialPrint.ino" />
     <None Include="radio_handling.ino" />
+    <None Include="serial_print.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.Mobile Robot 2018 receiver.vsarduino.h">

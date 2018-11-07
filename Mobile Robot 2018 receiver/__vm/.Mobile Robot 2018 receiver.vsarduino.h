@@ -75,8 +75,8 @@ typedef void *__builtin_va_list;
 #define pgm_read_ptr(address_short)   short()
 
 #include "Mobile Robot 2018 receiver.ino"
-#include "SerialPrint.ino"
 #include "current_measuring.ino"
 #include "radio_handling.ino"
+#include "serial_print.ino"
 #endif
 #endif
