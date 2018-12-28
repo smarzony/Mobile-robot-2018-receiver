@@ -3,7 +3,7 @@
 #include <RF24.h>
 
 //SWITCHES
-#define RADIO_PRINT_INCOMING_MESSAGE 0
+#define RADIO_PRINT_INCOMING_MESSAGE 1
 
 //TIMERS
 #define ONE_MS 1
@@ -27,6 +27,20 @@
 #define	CONTROL_BYTE 4
 #define MESSAGE_NO 5
 
+class Motor
+{
+public:
+	Motor(int pA, int pB, int pPWM);
+	void forward(short speed);
+	void backward(short speed);
+	void stop();
+
+private:
+	int pinA;
+	int pinB;
+	int pinPWM;
+};
+
 
 //radio variables
 RF24 radio(14, 15);
@@ -34,6 +48,13 @@ const byte rxAddr[6] = {'1','N','o','d','e','0'};
 byte incoming_message[6];
 
 short last_message_no, current_message_no, messages_lost;
+bool radio_not_availalble = 1;
+
+Motor RightMotor(41, 40, 45);
+Motor LeftMotor(43, 42, 44);
+
+
+
 
 //robot control variables
 short cBufanalogRightX[ANALOG_CALIBRATION],
@@ -73,6 +94,28 @@ void loop()
 	serialPrint(SERIAL_PRINT_PERIOD);
 
 	analogCalibration(now, ANALOG_CALIBRATION_TIME, analogLeftYrest, analogLeftXrest, analogRightYrest, analogRightXrest, done_calibration);
+
+	if (incoming_message[ANALOG_LEFT_Y] > 160 && current_message_no != 0)
+	{
+		LeftMotor.forward(50);
+	}
+	else if (incoming_message[ANALOG_LEFT_Y] < 100 && current_message_no != 0)
+	{
+		LeftMotor.backward(50);
+	}
+	else
+		LeftMotor.stop();
+
+	if (incoming_message[ANALOG_RIGHT_Y] > 160 && current_message_no != 0)
+	{
+		RightMotor.forward(50);
+	}
+	else if (incoming_message[ANALOG_RIGHT_Y] < 100 && current_message_no != 0)
+	{
+		RightMotor.backward(50);
+	}
+	else
+		RightMotor.stop();
 }
 
 

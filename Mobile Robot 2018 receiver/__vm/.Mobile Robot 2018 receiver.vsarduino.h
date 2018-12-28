@@ -76,6 +76,7 @@ typedef void *__builtin_va_list;
 
 #include "Mobile Robot 2018 receiver.ino"
 #include "current_measuring.ino"
+#include "motor_handling.ino"
 #include "radio_handling.ino"
 #include "serial_print.ino"
 #endif

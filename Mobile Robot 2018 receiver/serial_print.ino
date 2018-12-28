@@ -30,5 +30,7 @@ void serialPrint(int period)
 
 		if (any_print)
 			Serial.println();
+		if (radio_not_availalble)
+			Serial.println("Radio not available");
 	}
 }

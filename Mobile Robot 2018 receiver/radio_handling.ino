@@ -42,10 +42,12 @@ void readRadio(int period)
 			current_message_no = incoming_message[MESSAGE_NO];
 			messages_lost = current_message_no - last_message_no - 1;
 			printMessage(RADIO_PRINT_INCOMING_MESSAGE);
+			radio_not_availalble = 0;
 		}
 		else
 		{
-			//Serial.println("Radio not available");
+			radio_not_availalble = 1;
+			
 		}
 
 	}
