@@ -41,9 +41,26 @@ private:
 	int pinPWM;
 };
 
+struct radioData {
+	byte analog_left_X;
+	byte analog_left_Y;
+	byte analog_right_X;
+	byte analog_right_Y;
+	byte led_r;
+	byte led_g;
+	byte led_b;
+	byte reserved0;
+	byte reserved1;
+	byte reserved2;
+	byte reserved3;
+	byte message_no;
+};
+
+radioData message;
+byte radio_not_availalble_counter;
 
 //radio variables
-RF24 radio(14, 15);
+RF24 radio(7,8);
 const byte rxAddr[6] = {'1','N','o','d','e','0'};
 byte incoming_message[6];
 
@@ -79,9 +96,10 @@ float average_current;
 void setup()
 {
 	Serial.begin(9600);
-
+	Serial.println("Starting...");
 	radio.begin();
-	radio.setChannel(2);
+	radio.setChannel(75);	
+	// ----------------------------   JAK SIÊ ROZJEBIE TO ZMIEN KANA£ -----------------------------------
 	radio.openReadingPipe(0, rxAddr);
 	radio.startListening();
 }
@@ -93,26 +111,26 @@ void loop()
 	shunt_measure(CURRENT_MEASURE_PERIOD);
 	serialPrint(SERIAL_PRINT_PERIOD);
 
-	analogCalibration(now, ANALOG_CALIBRATION_TIME, analogLeftYrest, analogLeftXrest, analogRightYrest, analogRightXrest, done_calibration);
+	//analogCalibration(now, ANALOG_CALIBRATION_TIME, analogLeftYrest, analogLeftXrest, analogRightYrest, analogRightXrest, done_calibration);
 
-	if (incoming_message[ANALOG_LEFT_Y] > 160 && current_message_no != 0)
+	if (message.analog_left_Y > 160 && current_message_no != 0)
 	{
-		LeftMotor.forward(50);
+		LeftMotor.forward(100);
 	}
-	else if (incoming_message[ANALOG_LEFT_Y] < 100 && current_message_no != 0)
+	else if (message.analog_left_Y < 100 && current_message_no != 0)
 	{
-		LeftMotor.backward(50);
+		LeftMotor.backward(100);
 	}
 	else
 		LeftMotor.stop();
 
-	if (incoming_message[ANALOG_RIGHT_Y] > 160 && current_message_no != 0)
+	if (message.analog_right_Y > 160 && current_message_no != 0)
 	{
-		RightMotor.forward(50);
+		RightMotor.forward(100);
 	}
-	else if (incoming_message[ANALOG_RIGHT_Y] < 100 && current_message_no != 0)
+	else if (message.analog_right_Y < 100 && current_message_no != 0)
 	{
-		RightMotor.backward(50);
+		RightMotor.backward(100);
 	}
 	else
 		RightMotor.stop();

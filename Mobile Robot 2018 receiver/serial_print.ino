@@ -31,6 +31,9 @@ void serialPrint(int period)
 		if (any_print)
 			Serial.println();
 		if (radio_not_availalble)
-			Serial.println("Radio not available");
+		{
+			Serial.print(radio_not_availalble_counter);
+			Serial.println(". Radio not available");
+		}
 	}
 }
