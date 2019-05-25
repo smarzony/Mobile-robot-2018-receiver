@@ -30,10 +30,17 @@ void serialPrint(int period)
 
 		if (any_print)
 			Serial.println();
-		if (radio_not_availalble)
+		/*if (!radio.available())
 		{
 			Serial.print(radio_not_availalble_counter);
 			Serial.println(". Radio not available");
-		}
+		}*/
+		
+		if (!radio.isChipConnected())
+			Serial.println("\nRadio disconnected");
+		
+		if (!radio.isValid())
+			Serial.println("\nRadio not valid");
+
 	}
 }
