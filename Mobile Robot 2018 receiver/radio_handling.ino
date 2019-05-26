@@ -28,7 +28,7 @@
 //	Serial.println();
 //}
 
-void readRadio(int period)
+void readRadio(int period, bool printing)
 {
 
 	if ((now - last_message_read >= period))
@@ -42,7 +42,8 @@ void readRadio(int period)
 			radio.read(&message, sizeof(message));
 			current_message_no = message.message_no;
 			messages_lost = current_message_no - last_message_no - 1;
-			printMessage(RADIO_PRINT_INCOMING_MESSAGE);
+			if (printing)
+				printMessage(RADIO_PRINT_INCOMING_MESSAGE);
 			radio_not_availalble = 0;
 			radio_not_availalble_counter = 0;
 		}

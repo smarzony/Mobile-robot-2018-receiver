@@ -20,6 +20,7 @@
     <None Include="radio_handling.ino" />
     <None Include="serial_print.ino" />
     <None Include="motor_handling.ino" />
+    <None Include="controls.ino" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="__vm\.Mobile Robot 2018 receiver.vsarduino.h">

@@ -1,9 +1,16 @@
+#include <SimpleTimer.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
 
 //SWITCHES
 #define RADIO_PRINT_INCOMING_MESSAGE 1
+
+//CONTROLS
+#define CONTROLS_STANDARD 0
+#define CONTROLS_ENCHANCED 1
+#define FWD 0
+#define BWD 1
 
 //TIMERS
 #define ONE_MS 1
@@ -22,6 +29,8 @@
 //RADIO CONFIG
 #define CE 7
 #define CSN 8
+#define PRINTING 1
+#define NOT_PRINTING 0
 
 //RADIO MESSAGE PARTS
 #define	ANALOG_LEFT_Y 0
@@ -35,6 +44,10 @@
 #define R_LED 34
 #define G_LED 32
 #define B_LED 33
+
+//SERIAL OUTPUT
+#define STANDARD 0
+#define SPEED_MONITORING 1
 
 class Motor
 {
@@ -61,11 +74,11 @@ struct radioData {
 	byte reserved0;
 	byte reserved1;
 	byte reserved2;
-	byte reserved3;
+	byte bit_array;
 	byte message_no;
 };
 
-
+SimpleTimer SerialTimer;
 
 
 //radio variables
@@ -82,8 +95,12 @@ bool radio_not_availalble = 1;
 
 Motor RightMotor(41, 40, 45);
 Motor LeftMotor(43, 42, 44);
-byte speed_left;
-byte speed_right;
+
+float speed_general;
+float speed_left;
+float speed_right;
+float steer_left, steer_right;
+bool direction;
 
 
 
@@ -108,69 +125,47 @@ float current_array[CURRENT_BUFFER_SIZE];
 float current_shunt;
 float average_current;
 
+//SERIAL MODE
+byte serial_mode = SPEED_MONITORING;
+
 void setup()
 {
+	digitalWrite(G_LED, 1);
 	Serial.begin(9600);
 	Serial.println("Starting...");
 	radioConfig();
 	pinMode(R_LED, OUTPUT);
 	Serial.println("Setup completed");
+	delay(100);
+	digitalWrite(G_LED, 0);
+
+	SerialTimer.setInterval(500, serialPrintSpeedMonitor);
 }
 
 void loop()
 {
+	SerialTimer.run();
+
 	if (radio.isChipConnected() == 1 && chip_connected_last_state == 0)
 		radioConfig();
-/*
-	if (messages_lost > 4)
-	{
-		Serial.println("Radio restart");
-		radio.powerDown();
-		delay(50);
-		radioConfig();
-		radio.powerUp();		
-	}
-*/
+
+	digitalWrite(R_LED, !radio.isChipConnected());
+
 	
 	now = millis();
-	readRadio(0);
+	readRadio(0, NOT_PRINTING);
 	shunt_measure(CURRENT_MEASURE_PERIOD);
-	serialPrint(SERIAL_PRINT_PERIOD);
+	//serialPrint(SERIAL_PRINT_PERIOD, SPEED_MONITORING);
 
+	// STOP MOTORS
 	if (messages_lost > 2)
 	{
 		LeftMotor.stop();
 		RightMotor.stop();
 	}
 
-	if (message.message_no != 0 && !empty_receive_data)
-	{
-		switch (message.analog_left_Y)
-		{
-		case 0 ... 90:
-			LeftMotor.backward(80);
-			break;
-		case 91 ... 180:
-			LeftMotor.stop();
-			break;
-		case 181 ... 255:
-			LeftMotor.forward(80);
-			break;
-		}
-
-		switch (message.analog_right_Y)
-		{
-		case 0 ... 90:
-			RightMotor.backward(80);
-			break;
-		case 91 ... 180:
-			RightMotor.stop();
-			break;
-		case 181 ... 255:
-			RightMotor.forward(80);
-			break;
-		}
-	}
+	// MOVE MOTORS
+	controls(CONTROLS_ENCHANCED);
 
 	if (message.analog_left_Y == 0 && message.analog_left_X && message.analog_right_X == 0 & message.analog_right_Y == 0)
 		empty_receive_data = 1;
@@ -286,3 +281,8 @@ void analogCalibration(unsigned long long now, int time, short &leftYrestpos, sh
 	}
 }
 
+void SerialDummy()
+{
+	Serial.print("Uptime (s): ");
+	Serial.println(millis() / 1000);
+}
