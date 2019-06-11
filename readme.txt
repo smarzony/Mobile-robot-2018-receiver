@@ -5,3 +5,5 @@ If communication ratio is shitty, change channel.
 
 Radio got its own battery, which improves communication signifacantly. 
 After any changes in wiring, check for the common ground.
+
+PID is working worse than modified PI controller. I don't think I can correct it.
