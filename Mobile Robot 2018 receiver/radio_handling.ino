@@ -46,6 +46,11 @@ void readRadio(int period, bool printing)
 				printMessage(RADIO_PRINT_INCOMING_MESSAGE);
 			radio_not_availalble = 0;
 			radio_not_availalble_counter = 0;
+
+			side_switch = bitRead(message.bit_array, 0);
+			analogLeft_Switch = bitRead(message.bit_array, 1);
+			analogRightSwitch = bitRead(message.bit_array, 2);
+			rotoryEncoder_switch = bitRead(message.bit_array, 3);
 		}
 		else
 		{
@@ -74,6 +79,13 @@ void printMessage(bool print_message)
 		Serial.print(message.analog_right_X);
 		Serial.print(' ');
 		Serial.print(message.analog_right_Y);
+		Serial.print(' ');
+		Serial.print(bitRead(message.bit_array, 0));
+		Serial.print(bitRead(message.bit_array, 1));
+		Serial.print(bitRead(message.bit_array, 2));
+		Serial.print(bitRead(message.bit_array, 3));
+		Serial.print(' ');
+		Serial.print(message.rotory_encoder);
 		Serial.print(' ');
 		Serial.print(message.message_no);
 		

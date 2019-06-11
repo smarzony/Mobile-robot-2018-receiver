@@ -2,46 +2,20 @@
 void serialPrintStandard()
 {
 
-	Serial.println("STANDARD");
-	bool any_print = false;
-	last_serial_print = now;
-	Serial.print("SV: ");
-	//Serial.print(shunt_voltage_plus_ADC - shunt_voltage_minus_ADC);
-	Serial.print("\tCurrent: ");
-	Serial.print(current_shunt);
+	String output;
+	output += message.analog_left_X;
+	output += ' ';
+	output += message.analog_left_Y;
+	output += ' ';
+	output += message.analog_right_X;
+	output += ' ';
+	output += message.analog_right_Y;
+	output += ' ';
+	output += message.message_no;
+	output += ' ';
+	output += message.rotory_encoder;
 
-	if (average_current > 900)
-	{
-		any_print = true;
-		Serial.print("I: ");
-		Serial.print(average_current);
-		Serial.print(" mA");
-	}
-
-	//Serial.print("\tT : ");
-	//Serial.print(temperature);
-	//Serial.print(" *C");
-
-	if (messages_lost > 1)
-	{
-		any_print = true;
-		Serial.print("\tData loss: ");
-		Serial.print(messages_lost);
-	}
-
-	if (any_print)
-		Serial.println();
-	/*if (!radio.available())
-	{
-		Serial.print(radio_not_availalble_counter);
-		Serial.println(". Radio not available");
-	}*/
-
-	if (!radio.isChipConnected())
-		Serial.println("\nRadio disconnected");
-
-	if (!radio.isValid())
-		Serial.println("\nRadio not valid");
+	Serial.println(output);
 
 }
 void serialPrintSpeedMonitor()
@@ -62,12 +36,65 @@ void serialPrintSpeedMonitor()
 	output += " S_L:";
 	output += speed_left;
 	output += " S_R:";
+	/*
 	output += speed_right;
 	output += " St_L:";
 	output += steer_left;
 	output += " St_R:";
 	output += steer_right;
+	*/
+	output += " S_L_M:";
+	output += measured_speed_left;
+	/*
+	output += " S_R_M:";	
+	output += measured_speed_right;
+	*/
+	output += " E_L:";	
+	output += errorLeft;
+	output += " PWM_L";
+	output += PWM_left_motor;
 
 	Serial.println(output);
+}
 
+void SerialPrintPID()
+{
+	String output;
+	/*
+	output += "[Kp, Ki, Kd] = [";
+	output += Kp;
+	output += ", ";
+	output += Ki;
+	output += ", ";
+	output += Kd;
+	output += "]\t";
+	*/
+	output += "DZ = ";
+	output += dead_zone;
+	output += "\tvelo = [";
+	output += (byte)speed_general;
+	output += ", ";
+	output += measured_speed_left;
+	output += ", ";
+	output += measured_speed_right;
+	output += "]\terror = [";
+	output += errorLeft;
+	output += ", ";
+	output += errorRight;
+	output += "]\tI =[";
+	output += (byte)integralLeft;
+	output += ", ";
+	output += (byte)integralRight;
+	output += "]\td = [";
+	output += (byte)differentialLeft;
+	output += ", ";
+	output += (byte)differentialRight;
+	output += "]\tPWM = [";
+	output += (byte)PWM_left_motor;
+	output += ", ";
+	output += (byte)PWM_right_motor;
+	output += "]";
+
+
+	Serial.println(output);
 }
