@@ -3,17 +3,17 @@ void serialPrintStandard()
 {
 
 	String output;
-	output += message.analog_left_X;
+	output += message_receive.analog_left_X;
 	output += ' ';
-	output += message.analog_left_Y;
+	output += message_receive.analog_left_Y;
 	output += ' ';
-	output += message.analog_right_X;
+	output += message_receive.analog_right_X;
 	output += ' ';
-	output += message.analog_right_Y;
+	output += message_receive.analog_right_Y;
 	output += ' ';
-	output += message.message_no;
+	output += message_receive.message_no;
 	output += ' ';
-	output += message.rotory_encoder;
+	output += message_receive.rotory_encoder;
 
 	Serial.println(output);
 
@@ -22,9 +22,9 @@ void serialPrintSpeedMonitor()
 {
 	String output;
 	output = "L_Y:";
-	output += message.analog_left_Y;
+	output += message_receive.analog_left_Y;
 	output += " R_X:";
-	output += message.analog_right_X;
+	output += message_receive.analog_right_X;
 
 	if (direction == FWD)
 		output += " FWD";
@@ -50,7 +50,7 @@ void serialPrintSpeedMonitor()
 	output += measured_speed_right;
 	*/
 	output += " E_L:";	
-	output += errorLeft;
+	output += pid.errorLeft;
 	output += " PWM_L";
 	output += PWM_left_motor;
 
@@ -70,7 +70,7 @@ void SerialPrintPID()
 	output += "]\t";
 	*/
 	output += "DZ = ";
-	output += dead_zone;
+	output += DEAD_ZONE;
 	output += "\tvelo = [";
 	output += (byte)speed_general;
 	output += ", ";
@@ -78,17 +78,17 @@ void SerialPrintPID()
 	output += ", ";
 	output += measured_speed_right;
 	output += "]\terror = [";
-	output += errorLeft;
+	output += pid.errorLeft;
 	output += ", ";
-	output += errorRight;
+	output += pid.errorRight;
 	output += "]\tI =[";
-	output += (byte)integralLeft;
+	output += (byte)pid.integralLeft;
 	output += ", ";
-	output += (byte)integralRight;
+	output += (byte)pid.integralRight;
 	output += "]\td = [";
-	output += (byte)differentialLeft;
+	output += (byte)pid.differentialLeft;
 	output += ", ";
-	output += (byte)differentialRight;
+	output += (byte)pid.differentialRight;
 	output += "]\tPWM = [";
 	output += (byte)PWM_left_motor;
 	output += ", ";

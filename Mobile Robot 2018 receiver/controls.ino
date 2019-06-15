@@ -1,6 +1,6 @@
 void controls(byte control_type)
 {
-	if (message.message_no != 0 && !empty_receive_data)
+	if (message_receive.message_no != 0 && !empty_receive_data)
 	{
 		
 		switch (control_type)
@@ -8,65 +8,65 @@ void controls(byte control_type)
 		case CONTROLS_STANDARD:
 
 
-			switch (message.analog_left_Y)
+			switch (message_receive.analog_left_Y)
 			{
 			case 0 ... 90:
-				LeftMotor.backward(velocityLimit);
+				LeftMotor.backward(VELOCITY_LIMIT);
 
 				break;
 			case 91 ... 180:
 				LeftMotor.stop();
 				break;
 			case 181 ... 255:
-				LeftMotor.forward(velocityLimit);
+				LeftMotor.forward(VELOCITY_LIMIT);
 				break;
 			}
 
-			switch (message.analog_right_Y)
+			switch (message_receive.analog_right_Y)
 			{
 			case 0 ... 90:
-				RightMotor.backward(velocityLimit);
+				RightMotor.backward(VELOCITY_LIMIT);
 				break;
 			case 91 ... 180:
 				RightMotor.stop();
 				break;
 			case 181 ... 255:
-				RightMotor.forward(velocityLimit);
+				RightMotor.forward(VELOCITY_LIMIT);
 				break;
 			}
 			break;
 
 		case CONTROLS_ENCHANCED:
 			
-			if (message.analog_left_Y >= 0 && message.analog_left_Y < (128 - dead_zone))
+			if (message_receive.analog_left_Y >= 0 && message_receive.analog_left_Y < (128 - DEAD_ZONE))
 			{			
-				speed_general = map(message.analog_left_Y, 1, 85, velocityLimit, 1);
+				speed_general = map(message_receive.analog_left_Y, 1, 85, VELOCITY_LIMIT, 1);
 				direction = BWD;			
 			}
-			if (message.analog_left_Y >= (128 - dead_zone) && message.analog_left_Y < (128 + dead_zone))
+			if (message_receive.analog_left_Y >= (128 - DEAD_ZONE) && message_receive.analog_left_Y < (128 + DEAD_ZONE))
 			{		
 				speed_general = 0.0;				
 			}
-			if (message.analog_left_Y >= (128 + dead_zone) && message.analog_left_Y <= 255)
+			if (message_receive.analog_left_Y >= (128 + DEAD_ZONE) && message_receive.analog_left_Y <= 255)
 			{			
-				speed_general = map(message.analog_left_Y - 171, 1, 85, 1, velocityLimit);
+				speed_general = map(message_receive.analog_left_Y - 171, 1, 85, 1, VELOCITY_LIMIT);
 				direction = FWD;				
 			}
 			
 
 			
-			if (message.steering_wheel >= 0 && message.steering_wheel < (128 - dead_zone))
+			if (message_receive.steering_wheel >= 0 && message_receive.steering_wheel < (128 - DEAD_ZONE))
 			{			
-				steer_left = map(message.steering_wheel, 0, (128 - dead_zone), 0, 100);
+				steer_left = map(message_receive.steering_wheel, 0, (128 - DEAD_ZONE), 0, 100);
 			}
-			if (message.steering_wheel >= (128 - dead_zone) && message.steering_wheel < (128 + dead_zone))
+			if (message_receive.steering_wheel >= (128 - DEAD_ZONE) && message_receive.steering_wheel < (128 + DEAD_ZONE))
 			{			
 				steer_left = 100.0;
 				steer_right = 100.0;				
 			}
-			if (message.steering_wheel >= (128 + dead_zone) && message.steering_wheel <= 255)
+			if (message_receive.steering_wheel >= (128 + DEAD_ZONE) && message_receive.steering_wheel <= 255)
 			{
-				steer_right = map(message.steering_wheel, (128 + dead_zone), 255, 100, 0);
+				steer_right = map(message_receive.steering_wheel, (128 + DEAD_ZONE), 255, 100, 0);
 			}
 			
 
@@ -87,39 +87,41 @@ void controls(byte control_type)
 
 		case CONTROLS_MEASURED:
 			// SPEED
-			if (message.analog_left_Y >= 0 && message.analog_left_Y < (128 - dead_zone))
+			if (message_receive.analog_left_Y >= 0 && message_receive.analog_left_Y < (128 - DEAD_ZONE))
 			{
-				speed_general = map(message.analog_left_Y, 1, (128 - dead_zone), velocityLimit, 1);
+				speed_general = map(message_receive.analog_left_Y, 1, (128 - DEAD_ZONE), VELOCITY_LIMIT, 1);
 				direction = BWD;			
 			}
-			if (message.analog_left_Y >= (128 - dead_zone) && message.analog_left_Y < (128 + dead_zone))
+
+
+			if (message_receive.analog_left_Y >= (128 - DEAD_ZONE) && message_receive.analog_left_Y < (128 + DEAD_ZONE))
 			{				
 				speed_general = 0.0;					
 			}
-			if (message.analog_left_Y >= (128 + dead_zone) && message.analog_left_Y <= 255)
+			if (message_receive.analog_left_Y >= (128 + DEAD_ZONE) && message_receive.analog_left_Y <= 255)
 			{		
-				speed_general = map(message.analog_left_Y - (128 + dead_zone), 1, (128 - dead_zone), 1, velocityLimit);
+				speed_general = map(message_receive.analog_left_Y - (128 + DEAD_ZONE), 1, (128 - DEAD_ZONE), 1, VELOCITY_LIMIT);
 				direction = FWD;			
 			}
 
 			// STEERING
 			
-			if (message.analog_right_X >= 0 && message.analog_right_X < (128 - dead_zone))
+			if (message_receive.analog_right_X >= 0 && message_receive.analog_right_X < (128 - DEAD_ZONE))
 			{
-				steer_left = map(message.analog_right_X, 0, 128 - dead_zone, 0, 100);
+				steer_left = map(message_receive.analog_right_X, 0, 128 - DEAD_ZONE, 0, 100);
 				steer_right = 100.0;
 			}
 
-			if (message.analog_right_X >= (128 - dead_zone) && message.analog_right_X < (128 + dead_zone))
+			if (message_receive.analog_right_X >= (128 - DEAD_ZONE) && message_receive.analog_right_X < (128 + DEAD_ZONE))
 			{
 				steer_left = 100.0;
 				steer_right = 100.0;
 			}
 
-			if (message.analog_right_X >= (128 + dead_zone) && message.analog_right_X <= 255)
+			if (message_receive.analog_right_X >= (128 + DEAD_ZONE) && message_receive.analog_right_X <= 255)
 			{
 				//steer_right = map(message.analog_right_X, (128 + dead_zone), 255, 100, 0);
-				steer_right = float((message.analog_right_X - 145) * (-10) + 100);
+				steer_right = float((message_receive.analog_right_X - 145) * (-10) + 100);
 				steer_left = 100.0;
 			}
 			
@@ -150,9 +152,9 @@ void controls(byte control_type)
 
 void computePWM()
 {
-	errorLeft = (int)measured_speed_left - (int)speed_left;
-	errorRight = (int)measured_speed_right - (int)speed_right;
-	switch (errorLeft)
+	pid.errorLeft = (int)measured_speed_left - (int)speed_left;
+	pid.errorRight = (int)measured_speed_right - (int)speed_right;
+	switch (pid.errorLeft)
 	{
 		case (-999)...(-100) :
 			PWM_left_motor += 20;
@@ -197,7 +199,7 @@ void computePWM()
 	if (PWM_left_motor < 0)
 		PWM_left_motor = 0;
 
-	switch (errorRight)
+	switch (pid.errorRight)
 	{
 		case (-999)...(-100) :
 			PWM_right_motor += 20;
@@ -245,36 +247,32 @@ void computePWM()
 
 void computePID()
 {
-	errorLeft = ((int)speed_left - (int)measured_speed_left);
-	errorRight = ((int)speed_right - (int)measured_speed_right);
+	pid.errorLeft = ((int)speed_left - (int)measured_speed_left);
+	pid.errorRight = ((int)speed_right - (int)measured_speed_right);
 
-	integralLeft += (((float)errorLeft + (float)errorLeft_last) / 2)*PID_DT/1000;
-	integralRight += (((float)errorRight + (float)errorRight_last) / 2)*PID_DT/1000;
+	pid.integralLeft += (((float)pid.errorLeft + (float)pid.errorLeft_last) / 2)*PID_DT/1000;
+	pid.integralRight += (((float)pid.errorRight + (float)pid.errorRight_last) / 2)*PID_DT/1000;
 	if (abs(speed_general) < 1.0)
 	{
-		integralLeft = 0.0;
-		integralRight = 0.0;
+		pid.integralLeft = 0.0;
+		pid.integralRight = 0.0;
 	}
-	
-	//integralLeft = 0.0;
-	//integralRight = 0.0;
 
+	if (pid.integralLeft > pid.integralLimit)
+		pid.integralLeft = pid.integralLimit;
+	if (pid.integralLeft < -pid.integralLimit)
+		pid.integralLeft = -pid.integralLimit;
 
-	if (integralLeft > integralLimit)
-		integralLeft = integralLimit;
-	if (integralLeft < -integralLimit)
-		integralLeft = -integralLimit;
+	if (pid.integralRight > pid.integralLimit)
+		pid.integralRight = pid.integralLimit;
+	if (pid.integralRight < -pid.integralLimit)
+		pid.integralRight = -pid.integralLimit;
 
-	if (integralRight > integralLimit)
-		integralRight = integralLimit;
-	if (integralRight < -integralLimit)
-		integralRight = -integralLimit;
+	pid.differentialLeft = pid.errorLeft - pid.errorLeft_last;
+	pid.differentialRight = pid.errorRight - pid.errorRight_last;
 
-	differentialLeft = errorLeft - errorLeft_last;
-	differentialRight = errorRight - errorRight_last;
-
-	PWM_left_motor = Kp * (errorLeft + ((1 / Ki)*integralLeft ) + (Kd * differentialLeft / PID_DT));
-	PWM_right_motor = Kp * (errorRight + ((1 / Ki)*integralRight ) + (Kd *differentialRight / PID_DT));
+	PWM_left_motor = pid.Kp * (pid.errorLeft + ((1 / pid.Ki)*pid.integralLeft ) + (pid.Kd * pid.differentialLeft / PID_DT));
+	PWM_right_motor = pid.Kp * (pid.errorRight + ((1 / pid.Ki)*pid.integralRight ) + (pid.Kd *pid.differentialRight / PID_DT));
 
 	if (PWM_left_motor > 255.0)
 		PWM_left_motor = 255.0;
@@ -286,7 +284,41 @@ void computePID()
 	if (PWM_right_motor < 0.0)
 		PWM_right_motor = 0.0;
 
-	errorLeft_last = errorLeft;
-	errorRight_last = errorRight;
+	pid.errorLeft_last = pid.errorLeft;
+	pid.errorRight_last = pid.errorRight;
 }
 
+void controlMotors()
+{
+
+	if (false && bitRead(message_receive.bit_array, 1) == 1 && bitRead(message_receive.bit_array, 2) == 1)
+	{
+		controls(CONTROLS_STANDARD);
+		SerialTimer1.run();
+	}
+	else if (side_switch == 1)
+	{
+		digitalWrite(RIGHT_LIGHT, 0);
+		controls(CONTROLS_ENCHANCED);
+		SerialTimer1.run();
+	}
+	else if (side_switch == 0)
+	{
+		digitalWrite(RIGHT_LIGHT, 1);
+		controls(CONTROLS_MEASURED);
+		SerialTimerPID.run();
+		PIDtimer.run();
+	}
+	else
+	{
+		LeftMotor.stop();
+		RightMotor.stop();
+		SerialTimer1.run();
+	}
+
+	if (messages_lost > 2 || empty_receive_data)
+	{
+		LeftMotor.stop();
+		RightMotor.stop();
+	}
+}

@@ -12,7 +12,8 @@
 #define CONTROLS_MEASURED 2
 #define FWD 0
 #define BWD 1
-
+#define DEAD_ZONE 17
+#define VELOCITY_LIMIT 80.0
 
 //TIMERS
 #define ONE_MS 1
@@ -33,7 +34,6 @@
 
 #define SPEED_SENSOR_LEFT 3
 #define SPEED_SENSOR_RIGHT 2
-
 
 //RADIO CONFIG
 #define CE 7
@@ -71,54 +71,88 @@ public:
 	void stop();
 
 private:
-	int pinA;
-	int pinB;
-	int pinPWM;
+	int pinA,
+		pinB,
+		pinPWM;
 };
 
-struct radioData {
-	byte analog_left_X;
-	byte analog_left_Y;
-	byte analog_right_X;
-	byte analog_right_Y;
-	byte led_r;
-	byte led_g;
-	byte led_b;
-	byte steering_wheel;
-	byte reserved1;
-	byte rotory_encoder;
-	byte bit_array;
-	byte message_no;
+struct PIDstruct {
+	int errorLeft, 
+		errorLeft_last,
+		errorRight, 
+		errorRight_last;
+
+	float integralLeft, 
+		integralRight,
+		differentialLeft, 
+		differentialRight,
+		Kp = 1.2,
+		Ki = 0.3,
+		Kd = 100,
+		integralLimit = 175.0;
+};
+
+struct radioDataReceive {
+	byte analog_left_X,
+		analog_left_Y,
+		analog_right_X,
+		analog_right_Y,
+		led_r,
+		led_g,
+		led_b,
+		steering_wheel,
+		reserved1,
+		rotory_encoder,
+		bit_array,
+		message_no;
+}; 
+
+struct radioDataTransmit {
+	byte reserved0,
+		reserved1,
+		reserved2,
+		reserved3,
+		reserved4,
+		reserved5,
+		reserved6,
+		reserved7,
+		reserved8,
+		message_no;
 };
 
 struct dipSwitch
 {
-	byte pin1 = 28;
-	bool pin1_state;
-	byte pin2 = 29;
-	bool pin2_state;
-	byte pin3 = 30;
-	bool pin3_state;
+	byte pin1 = 28;	
+	byte pin2 = 29;	
+	byte pin3 = 30;	
 	byte pin4 = 31;
-	bool pin4_state;
+
+	bool pin1_state,
+		pin2_state,
+		pin3_state,
+		pin4_state;
 };
 
 dipSwitch dipSwitch1;
 
-SimpleTimer SerialTimer;
-SimpleTimer SerialTimer1;
-SimpleTimer SerialTimerPID;
-SimpleTimer SpeedMonitorLeft;
-SimpleTimer SpeedMonitorRight;
-SimpleTimer dipSwitchRead;
-SimpleTimer outputSpeed;
-SimpleTimer PIDtimer;
+SimpleTimer SerialTimer,
+			SerialTimer1,
+			SerialTimerPID,
+			SpeedMonitorLeft,
+			SpeedMonitorRight,
+			dipSwitchRead,
+			outputSpeed,
+			PIDtimer,
+			SendRadioTimer;
 
 
 //radio variables
-radioData message;
+radioDataReceive message_receive;
+radioDataTransmit message_transmit;
+
 RF24 radio(CE, CSN);
 const byte rxAddr[6] = { '1','N','o','d','e','1' };
+const byte txAddr[6] = { '1','N','o','d','e','2' };
 bool empty_receive_data;
 bool chip_connected_last_state;
 
@@ -130,46 +164,60 @@ bool radio_not_availalble = 1;
 Motor RightMotor(41, 40, 45);
 Motor LeftMotor(43, 42, 44);
 
+PIDstruct pid;
+
 float speed_general;
 float speed_left;
 float speed_right;
 float steer_left, steer_right;
-bool direction;
 float PWM_left_motor;
 float PWM_right_motor;
+
+bool direction;
+
+/*
 int errorLeft, errorLeft_last;
 int errorRight, errorRight_last;
 float integralLeft, integralRight;
 float differentialLeft, differentialRight;
 float Kp = 1.2, Ki = 0.3, Kd = 100;
 float integralLimit = 175.0;
-float velocityLimit = 80;
+*/
 
 
 byte speed_left_count;
 byte speed_right_count;
 byte measured_speed_left;
 byte measured_speed_right;
-byte dead_zone = 17;
+byte analog_control_step;
 
-bool side_switch, analogLeft_Switch, analogRightSwitch, rotoryEncoder_switch;
+
+bool side_switch, 
+	analog_left_switch, 
+	analog_right_switch, 
+	rotory_encoder_switch;
 
 
 //robot control variables
 short cBufanalogRightX[ANALOG_CALIBRATION],
-cBufanalogRightY[ANALOG_CALIBRATION],
-cBufanalogLeftX[ANALOG_CALIBRATION],
-cBufanalogLeftY[ANALOG_CALIBRATION],
-analogLeftYrest,
-analogLeftXrest,
-analogRightYrest,
-analogRightXrest;
+	cBufanalogRightY[ANALOG_CALIBRATION],
+	cBufanalogLeftX[ANALOG_CALIBRATION],
+	cBufanalogLeftY[ANALOG_CALIBRATION],
+	analogLeftYrest,
+	analogLeftXrest,
+	analogRightYrest,
+	analogRightXrest;
 
 bool done_calibration = false;
 
 //event time variables
-unsigned long long now, last_message_read, last_shunt_measure, last_serial_print;
-unsigned long long last_velo_measure_left, last_velo_measure_right;
+unsigned long long now, 
+	last_message_read, 
+	last_shunt_measure, 
+	last_serial_print, 
+	last_velo_measure_left, 
+	last_velo_measure_right;
+
 
 //current measure
 float current_array[CURRENT_BUFFER_SIZE];
@@ -192,14 +240,13 @@ void setup()
 	pinMode(dipSwitch1.pin2, INPUT_PULLUP);
 	pinMode(dipSwitch1.pin3, INPUT_PULLUP);
 	pinMode(dipSwitch1.pin4, INPUT_PULLUP);	
-
-	digitalWrite(G_LED, 1);
+	
 	Serial.begin(9600);
 	Serial.println("Starting...");
 	radioConfig();
 	Serial.println("Setup completed");
 	delay(100);
-	digitalWrite(G_LED, 0);
+	
 
 	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_LEFT), leftSpeedSensorInterrupt, RISING);  // Increase counter A when speed sensor pin goes High
 	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_RIGHT), rightSpeedSensorInterrupt, RISING);
@@ -207,77 +254,33 @@ void setup()
 	SerialTimer.setInterval(500, serialPrintSpeedMonitor);
 	SerialTimer1.setInterval(500, serialPrintStandard);
 	SerialTimerPID.setInterval(500, SerialPrintPID);
-
 	SpeedMonitorLeft.setInterval(500, countLeftSpeed);
 	SpeedMonitorRight.setInterval(500, countRightSpeed);
-
 	dipSwitchRead.setInterval(1000, dipSwitchReadEvent);
 	outputSpeed.setInterval(PWM_COMPUTE_PERIOD, computePWM);
 	PIDtimer.setInterval(PID_DT, computePID);
-
+	SendRadioTimer.setInterval(1000, sendRadio);
 }
 
 void loop()
 {
+	// TIMERS
+	now = millis();
 	dipSwitchRead.run();
-
-	//dead_zone = (float)message.rotory_encoder;
-
-
-
 	SpeedMonitorLeft.run();
 	SpeedMonitorRight.run();
-
 	if (radio.isChipConnected() == 1 && chip_connected_last_state == 0)
 		radioConfig();
 
+	// TESTS
+	analog_control_step = message_receive.rotory_encoder;
+	if (analog_control_step > 200)
+		analog_control_step = 200;
+
+	// OUTPUTS
 	digitalWrite(R_LED, !radio.isChipConnected());
-	digitalWrite(LEFT_LIGHT, bitRead(message.bit_array, 1));
-	digitalWrite(RIGHT_LIGHT, bitRead(message.bit_array, 2));
-
-	now = millis();
-	readRadio(0, NOT_PRINTING);
-	shunt_measure(CURRENT_MEASURE_PERIOD);
-	//serialPrint(SERIAL_PRINT_PERIOD, SPEED_MONITORING);
-
-	// STOP MOTORS
-	if (messages_lost > 2)
-	{
-		LeftMotor.stop();
-		RightMotor.stop();
-	}
-
-	// MOVE MOTORS
-	
-	if (false && bitRead(message.bit_array, 1) == 1 && bitRead(message.bit_array, 2) == 1)
-	{
-		controls(CONTROLS_STANDARD);
-		SerialTimer1.run();
-	}
-	else if (side_switch == 1)
-	{
-		digitalWrite(RIGHT_LIGHT, 0);
-		controls(CONTROLS_ENCHANCED);
-		SerialTimer1.run();
-	}
-	else if (side_switch == 0)
-	{ 
-		digitalWrite(RIGHT_LIGHT, 1);
-		controls(CONTROLS_MEASURED);
-		SerialTimerPID.run();
-		PIDtimer.run();
-	}
-	else
-	{
-		LeftMotor.stop();
-		RightMotor.stop();
-		SerialTimer1.run();
-	}
-
-	if (message.analog_left_Y == 0 && message.analog_left_X && message.analog_right_X == 0 & message.analog_right_Y == 0)
-		empty_receive_data = 1;
-	else
-		empty_receive_data = 0;
+	digitalWrite(LEFT_LIGHT, analog_left_switch);
+	digitalWrite(RIGHT_LIGHT, analog_right_switch);
 
 	if (empty_receive_data == 1)
 		digitalWrite(R_LED, 1);
@@ -285,25 +288,22 @@ void loop()
 		digitalWrite(R_LED, 0);
 
 
+	// COMMUNICATION
+	readRadio(0, NOT_PRINTING);
+
+	// MEASURES
+	shunt_measure(CURRENT_MEASURE_PERIOD);
+
+	// MOVE MOTORS
+	controlMotors();
+
 	// -------------- END OPERATIONS ---------------------
 	chip_connected_last_state = radio.isChipConnected();
 }
 
-void radioConfig()
-{
-	/*
-	digitalWrite(CE, 0);
-	digitalWrite(CSN, 0);
-	delay(50);
-	*/
-	radio.begin();
-	radio.setDataRate(RF24_1MBPS);
-	radio.setChannel(0);//100	
-	// ------------   JAK SIÊ ROZJEBIE TO ZMIEN KANA£ -----
-	radio.openReadingPipe(0, rxAddr);
-	radio.startListening();
-}
 
+
+/*
 void analogCalibration(unsigned long long now, int time, short &leftYrestpos, short &leftXrestpos, short &rightYrestpos, short &rightXrestpos, bool &printed)
 {
 	if (time > now)
@@ -357,43 +357,17 @@ void analogCalibration(unsigned long long now, int time, short &leftYrestpos, sh
 		printed = true;
 	}
 }
+*/
 
+/*
 void SerialDummy()
 {
 	Serial.print("Uptime (s): ");
 	Serial.println(millis() / 1000);
 }
+*/
 
-void leftSpeedSensorInterrupt()
-{
-	if (now - last_velo_measure_left > VELOCITY_MEASURING_MINIMAL_PERIOD)
-	{
-		last_velo_measure_left = now;
-		speed_left_count++;
-	}
-	
-}
 
-void rightSpeedSensorInterrupt()
-{		
-	if (now - last_velo_measure_right > VELOCITY_MEASURING_MINIMAL_PERIOD)
-	{
-		last_velo_measure_right = now;
-		speed_right_count++;
-	}
-}
-
-void countLeftSpeed()
-{
-	measured_speed_left = speed_left_count;
-	speed_left_count = 0;
-}
-
-void countRightSpeed()
-{
-	measured_speed_right = speed_right_count;
-	speed_right_count = 0;
-}
 
 void dipSwitchReadEvent()
 {
