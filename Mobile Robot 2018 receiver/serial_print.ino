@@ -67,11 +67,11 @@ void SerialPrintPID()
 	output += Ki;
 	output += ", ";
 	output += Kd;
-	output += "]\t";
-	*/
+	output += "]\t";	
 	output += "DZ = ";
-	output += DEAD_ZONE;
-	output += "\tvelo = [";
+	output += DEAD_ZONE\t;
+	*/
+	output += "velo = [";
 	output += (byte)speed_general;
 	output += ", ";
 	output += measured_speed_left;

@@ -1,3 +1,4 @@
+#include <NewPing.h>
 #include <SimpleTimer.h>
 #include <SPI.h>
 #include <nRF24L01.h>
@@ -31,6 +32,8 @@
 //PHYSICAL PINS
 #define SHUNT_PIN_PLUS A1
 #define SHUNT_PIN_MINUS A2
+#define TRIGGER_PIN 14
+#define ECHO_PIN 15
 
 #define SPEED_SENSOR_LEFT 3
 #define SPEED_SENSOR_RIGHT 2
@@ -108,9 +111,9 @@ struct radioDataReceive {
 }; 
 
 struct radioDataTransmit {
-	byte reserved0,
-		reserved1,
-		reserved2,
+	byte velocity_measured_left,
+		velocity_measured_right,
+		distance,
 		reserved3,
 		reserved4,
 		reserved5,
@@ -143,7 +146,10 @@ SimpleTimer SerialTimer,
 			dipSwitchRead,
 			outputSpeed,
 			PIDtimer,
-			SendRadioTimer;
+			SendRadioTimer,
+			CheckDistanceTimer;
+
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, 200);
 
 
 //radio variables
@@ -224,6 +230,9 @@ float current_array[CURRENT_BUFFER_SIZE];
 float current_shunt;
 float average_current;
 
+//distance measure
+byte distance_measured;
+
 //SERIAL MODE
 byte serial_mode = SPEED_MONITORING;
 
@@ -259,7 +268,8 @@ void setup()
 	dipSwitchRead.setInterval(1000, dipSwitchReadEvent);
 	outputSpeed.setInterval(PWM_COMPUTE_PERIOD, computePWM);
 	PIDtimer.setInterval(PID_DT, computePID);
-	SendRadioTimer.setInterval(1000, sendRadio);
+	SendRadioTimer.setInterval(500, sendRadio);
+	CheckDistanceTimer.setInterval(250, CheckDistance);
 }
 
 void loop()
@@ -269,6 +279,8 @@ void loop()
 	dipSwitchRead.run();
 	SpeedMonitorLeft.run();
 	SpeedMonitorRight.run();
+	SendRadioTimer.run();
+	CheckDistanceTimer.run();
 	if (radio.isChipConnected() == 1 && chip_connected_last_state == 0)
 		radioConfig();
 
@@ -375,4 +387,9 @@ void dipSwitchReadEvent()
 	dipSwitch1.pin2_state = digitalRead(dipSwitch1.pin2);
 	dipSwitch1.pin3_state = digitalRead(dipSwitch1.pin3);
 	dipSwitch1.pin4_state = digitalRead(dipSwitch1.pin4);
+}
+
+void CheckDistance()
+{
+	distance_measured = sonar.ping_cm();
 }
