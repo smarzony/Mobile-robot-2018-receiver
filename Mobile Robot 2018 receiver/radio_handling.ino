@@ -19,12 +19,13 @@ void sendRadio()
 	message_transmit.velocity_measured_left = (byte)measured_speed_left;
 	message_transmit.velocity_measured_right = (byte)measured_speed_right;
 	message_transmit.distance = distance_measured;
+	message_transmit.control_mode = control_mode;
 
 	radio.stopListening();
 	radio.write(&message_transmit, sizeof(message_transmit));
 	radio.startListening();
 
-	message_transmit.message_no--;
+	message_transmit.message_no++;
 }
 
 void readRadio(int period, bool printing)

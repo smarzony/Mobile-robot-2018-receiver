@@ -11,6 +11,7 @@
 #define CONTROLS_STANDARD 0
 #define CONTROLS_ENCHANCED 1
 #define CONTROLS_MEASURED 2
+#define CONTROLS_AUTONOMUS 3
 #define FWD 0
 #define BWD 1
 #define DEAD_ZONE 17
@@ -114,7 +115,7 @@ struct radioDataTransmit {
 	byte velocity_measured_left,
 		velocity_measured_right,
 		distance,
-		reserved3,
+		control_mode,
 		reserved4,
 		reserved5,
 		reserved6,
@@ -125,10 +126,10 @@ struct radioDataTransmit {
 
 struct dipSwitch
 {
-	byte pin1 = 28;	
-	byte pin2 = 29;	
-	byte pin3 = 30;	
-	byte pin4 = 31;
+	byte pin1 = 26;	
+	byte pin2 = 27;	
+	byte pin3 = 28;	
+	byte pin4 = 29;
 
 	bool pin1_state,
 		pin2_state,
@@ -141,13 +142,15 @@ dipSwitch dipSwitch1;
 SimpleTimer SerialTimer,
 			SerialTimer1,
 			SerialTimerPID,
+			SerialTimerSend,
 			SpeedMonitorLeft,
 			SpeedMonitorRight,
 			dipSwitchRead,
 			outputSpeed,
 			PIDtimer,
 			SendRadioTimer,
-			CheckDistanceTimer;
+			CheckDistanceTimer,
+			SerialTimerAutonomusMode;
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, 200);
 
@@ -195,7 +198,7 @@ byte speed_left_count;
 byte speed_right_count;
 byte measured_speed_left;
 byte measured_speed_right;
-byte analog_control_step;
+byte control_mode;
 
 
 bool side_switch, 
@@ -270,6 +273,8 @@ void setup()
 	PIDtimer.setInterval(PID_DT, computePID);
 	SendRadioTimer.setInterval(500, sendRadio);
 	CheckDistanceTimer.setInterval(250, CheckDistance);
+	SerialTimerSend.setInterval(500, SerialPrintSendMSG);
+	SerialTimerAutonomusMode.setInterval(500, SerialPrintControlsAutonomus);
 }
 
 void loop()
@@ -279,18 +284,18 @@ void loop()
 	dipSwitchRead.run();
 	SpeedMonitorLeft.run();
 	SpeedMonitorRight.run();
-	SendRadioTimer.run();
+	//SendRadioTimer.run();
 	CheckDistanceTimer.run();
 	if (radio.isChipConnected() == 1 && chip_connected_last_state == 0)
 		radioConfig();
 
 	// TESTS
-	analog_control_step = message_receive.rotory_encoder;
+	/*analog_control_step = message_receive.rotory_encoder;
 	if (analog_control_step > 200)
 		analog_control_step = 200;
+		*/
 
 	// OUTPUTS
-	digitalWrite(R_LED, !radio.isChipConnected());
 	digitalWrite(LEFT_LIGHT, analog_left_switch);
 	digitalWrite(RIGHT_LIGHT, analog_right_switch);
 
@@ -308,6 +313,36 @@ void loop()
 
 	// MOVE MOTORS
 	controlMotors();
+
+	if (speed_left > 0 || speed_right > 0)
+	{
+		switch (control_mode)
+		{
+		case CONTROLS_STANDARD:
+			SerialTimer1.run();
+			break;
+		case CONTROLS_ENCHANCED:
+			SerialTimer1.run();
+			break;
+		case CONTROLS_MEASURED:
+			SerialTimerPID.run();
+			break;
+		case CONTROLS_AUTONOMUS:
+			SerialTimerAutonomusMode.run();
+			break;
+		}
+	}
+	else
+	{
+		if (control_mode != CONTROLS_AUTONOMUS)
+		{
+			//SerialTimerSend.run();
+			SerialTimerAutonomusMode.run();
+		}
+		else
+			SerialTimerAutonomusMode.run();
+	}
+
 
 	// -------------- END OPERATIONS ---------------------
 	chip_connected_last_state = radio.isChipConnected();

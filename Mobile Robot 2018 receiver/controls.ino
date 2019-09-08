@@ -6,7 +6,7 @@ void controls(byte control_type)
 		switch (control_type)
 		{
 		case CONTROLS_STANDARD:
-
+			control_mode = CONTROLS_STANDARD;
 
 			switch (message_receive.analog_left_Y)
 			{
@@ -37,6 +37,7 @@ void controls(byte control_type)
 			break;
 
 		case CONTROLS_ENCHANCED:
+			control_mode = CONTROLS_ENCHANCED;
 			
 			if (message_receive.analog_left_Y >= 0 && message_receive.analog_left_Y < (128 - DEAD_ZONE))
 			{			
@@ -86,6 +87,7 @@ void controls(byte control_type)
 			break;
 
 		case CONTROLS_MEASURED:
+			control_mode = CONTROLS_MEASURED;
 			// SPEED
 			if (message_receive.analog_left_Y >= 0 && message_receive.analog_left_Y < (128 - DEAD_ZONE))
 			{
@@ -139,6 +141,27 @@ void controls(byte control_type)
 			{
 				LeftMotor.backward((short)PWM_left_motor);
 				RightMotor.backward((short)PWM_right_motor);
+			}
+			break;
+
+		case CONTROLS_AUTONOMUS:
+			control_mode = CONTROLS_AUTONOMUS;
+			if (distance_measured > 60)
+			{
+				speed_left = 20;
+				speed_right = 20;
+			}
+
+			if (distance_measured <= 60 && distance_measured > 20)
+			{
+				speed_left = 10;
+				speed_right = 10;
+			}
+
+			if (distance_measured <= 20)
+			{
+				speed_left = 0;
+				speed_right = 0;
 			}
 			break;
 
@@ -291,22 +314,22 @@ void computePID()
 void controlMotors()
 {
 
-	if (false && bitRead(message_receive.bit_array, 1) == 1 && bitRead(message_receive.bit_array, 2) == 1)
+	if (false && side_switch == 1 && analog_left_switch == 1 && analog_right_switch == 1 && dipSwitch1.pin1_state == 0)
 	{
-		controls(CONTROLS_STANDARD);
-		SerialTimer1.run();
+		controls(CONTROLS_STANDARD);		
 	}
-	else if (side_switch == 1)
+	else if (false && side_switch == 1 && analog_right_switch == 0 && analog_right_switch == 0 && dipSwitch1.pin1_state == 0)
 	{
-		digitalWrite(RIGHT_LIGHT, 0);
 		controls(CONTROLS_ENCHANCED);
-		SerialTimer1.run();
 	}
-	else if (side_switch == 0)
+	else if (false && side_switch == 0 && dipSwitch1.pin1_state == 0)
 	{
-		digitalWrite(RIGHT_LIGHT, 1);
-		controls(CONTROLS_MEASURED);
-		SerialTimerPID.run();
+		controls(CONTROLS_MEASURED);			
+		PIDtimer.run();
+	}
+	else if (true || dipSwitch1.pin1_state == 1)
+	{
+		controls(CONTROLS_AUTONOMUS);
 		PIDtimer.run();
 	}
 	else

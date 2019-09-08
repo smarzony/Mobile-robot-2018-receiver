@@ -2,7 +2,7 @@
 void serialPrintStandard()
 {
 
-	String output;
+	String output = "[XL YL XR YR MSG ROT SS] = ";
 	output += message_receive.analog_left_X;
 	output += ' ';
 	output += message_receive.analog_left_Y;
@@ -14,6 +14,8 @@ void serialPrintStandard()
 	output += message_receive.message_no;
 	output += ' ';
 	output += message_receive.rotory_encoder;
+	output += ' ';
+	output += side_switch;
 
 	Serial.println(output);
 
@@ -96,5 +98,42 @@ void SerialPrintPID()
 	output += "]";
 
 
+	Serial.println(output);
+}
+
+void SerialPrintSendMSG()
+{
+	String output;
+	output += "No : ";
+	output += message_transmit.message_no;
+	output += ", Dist : ";
+	output += message_transmit.distance;
+	output += ", Mode : ";
+	output += message_transmit.control_mode;
+	output += ", velo = [";
+	output += message_transmit.velocity_measured_left;
+	output += ", ";
+	output += message_transmit.velocity_measured_right;
+	output += "]";
+
+
+	Serial.println(output);
+}
+
+void SerialPrintControlsAutonomus()
+{
+	String output;
+	output += "Dist : ";
+	output += distance_measured;
+	output += ", velo_in = [";
+	output += (int)speed_left;
+	output += ", ";
+	output += (int)speed_right;
+	output += "]";
+	output += ", velo_out = [";
+	output += (int)last_velo_measure_left;
+	output += ", ";
+	output += (int)last_velo_measure_left;
+	output += "]";
 	Serial.println(output);
 }
