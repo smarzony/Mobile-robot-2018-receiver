@@ -2,7 +2,7 @@
 void serialPrintStandard()
 {
 
-	String output = "[XL YL XR YR MSG ROT SS] = ";
+	String output = "[XL YL XR YR MSG CTRL SS] = ";
 	output += message_receive.analog_left_X;
 	output += ' ';
 	output += message_receive.analog_left_Y;
@@ -13,7 +13,7 @@ void serialPrintStandard()
 	output += ' ';
 	output += message_receive.message_no;
 	output += ' ';
-	output += message_receive.rotory_encoder;
+	output += message_receive.control_mode;
 	output += ' ';
 	output += side_switch;
 
@@ -131,9 +131,9 @@ void SerialPrintControlsAutonomus()
 	output += (int)speed_right;
 	output += "]";
 	output += ", velo_out = [";
-	output += (int)last_velo_measure_left;
+	output += (int)measured_speed_left;
 	output += ", ";
-	output += (int)last_velo_measure_left;
+	output += (int)measured_speed_right;
 	output += "]";
 	Serial.println(output);
 }

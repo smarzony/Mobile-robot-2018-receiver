@@ -11,17 +11,23 @@ Motor::Motor(int pA, int pB, int pPWM)
 	pinMode(pinPWM, OUTPUT);
 }
 
-void Motor::forward(short speed)
+void Motor::forward(short speed, bool interlock)
 {
 	digitalWrite(pinA, 0);
 	digitalWrite(pinB, 1);
-	analogWrite(pinPWM, speed);
+	if (interlock)
+		analogWrite(pinPWM, speed);
+	else
+		analogWrite(pinPWM, 0);
 }
-void Motor::backward(short speed)
+void Motor::backward(short speed, bool interlock)
 {
 	digitalWrite(pinA, 1);
 	digitalWrite(pinB, 0);
-	analogWrite(pinPWM, speed);
+	if (interlock)
+		analogWrite(pinPWM, speed);
+	else
+		analogWrite(pinPWM, 0);
 }
 void Motor::stop()
 {

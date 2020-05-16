@@ -1,5 +1,4 @@
 #include <NewPing.h>
-#include <SimpleTimer.h>
 #include <SPI.h>
 #include <nRF24L01.h>
 #include <RF24.h>
@@ -8,14 +7,15 @@
 #define RADIO_PRINT_INCOMING_MESSAGE 1
 
 //CONTROLS
-#define CONTROLS_STANDARD 0
-#define CONTROLS_ENCHANCED 1
-#define CONTROLS_MEASURED 2
-#define CONTROLS_AUTONOMUS 3
+#define CONTROLS_NONE 0
+#define CONTROLS_STANDARD 1
+#define CONTROLS_ENCHANCED 2
+#define CONTROLS_MEASURED 3
+#define CONTROLS_AUTONOMUS 4
+
 #define FWD 0
 #define BWD 1
-#define DEAD_ZONE 17
-#define VELOCITY_LIMIT 80.0
+#define DEAD_ZONE 22
 
 //TIMERS
 #define ONE_MS 1
@@ -70,8 +70,8 @@ class Motor
 {
 public:
 	Motor(int pA, int pB, int pPWM);
-	void forward(short speed);
-	void backward(short speed);
+	void forward(short speed, bool interlock);
+	void backward(short speed, bool interlock);
 	void stop();
 
 private:
@@ -90,8 +90,8 @@ struct PIDstruct {
 		integralRight,
 		differentialLeft, 
 		differentialRight,
-		Kp = 1.2,
-		Ki = 0.3,
+		Kp = 1.3,
+		Ki = 0.4,
 		Kd = 100,
 		integralLimit = 175.0;
 };
@@ -101,11 +101,11 @@ struct radioDataReceive {
 		analog_left_Y,
 		analog_right_X,
 		analog_right_Y,
-		led_r,
+		servo_0,
 		led_g,
 		led_b,
-		steering_wheel,
-		reserved1,
+		potentiometer,
+		control_mode,
 		rotory_encoder,
 		bit_array,
 		message_no;
@@ -116,7 +116,7 @@ struct radioDataTransmit {
 		velocity_measured_right,
 		distance,
 		control_mode,
-		reserved4,
+		time_delay,
 		reserved5,
 		reserved6,
 		reserved7,
@@ -137,20 +137,40 @@ struct dipSwitch
 		pin4_state;
 };
 
+struct limitSwitch
+{
+	byte pin_left = 17;
+	byte pin_right = 16;
+	byte pin_spare00 = 0;
+	byte pin_spare01 = 0;
+
+	bool left,
+		right,
+		spare00,
+		spare01;
+};
+
+limitSwitch limitSwitches, limitswitches_last;
+
 dipSwitch dipSwitch1;
 
-SimpleTimer SerialTimer,
+unsigned long long SerialTimer,
 			SerialTimer1,
-			SerialTimerPID,
+			SerialTimerPID = 7,
 			SerialTimerSend,
-			SpeedMonitorLeft,
-			SpeedMonitorRight,
-			dipSwitchRead,
-			outputSpeed,
-			PIDtimer,
-			SendRadioTimer,
-			CheckDistanceTimer,
-			SerialTimerAutonomusMode;
+			SpeedMonitorLeft = 61,
+			SpeedMonitorRight = 67,
+			dipSwitchRead = 23,
+			PIDtimer = 43,
+			SendRadioTimer =12,
+			CheckDistanceTimer = 37,
+			SerialTimerAutonomusMode, 
+			SerialPrintLimitSwitches,
+			RadioTimeoutTimer,
+			AliveTimer;
+			
+
+unsigned long long  Autonomous_wait_to_go_bwd;
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, 200);
 
@@ -181,6 +201,7 @@ float speed_right;
 float steer_left, steer_right;
 float PWM_left_motor;
 float PWM_right_motor;
+float velocity_limit;
 
 bool direction;
 
@@ -220,12 +241,13 @@ short cBufanalogRightX[ANALOG_CALIBRATION],
 bool done_calibration = false;
 
 //event time variables
-unsigned long long now, 
-	last_message_read, 
-	last_shunt_measure, 
-	last_serial_print, 
-	last_velo_measure_left, 
-	last_velo_measure_right;
+unsigned long long now,
+	last_message_read,
+	last_shunt_measure,
+	last_serial_print,
+	last_velo_measure_left,
+	last_velo_measure_right,
+	now_micros;
 
 
 //current measure
@@ -234,10 +256,15 @@ float current_shunt;
 float average_current;
 
 //distance measure
-byte distance_measured;
+byte distance_measured, distance_measured_last;
 
 //SERIAL MODE
 byte serial_mode = SPEED_MONITORING;
+
+// RGB LED
+bool led_state_green;
+
+
 
 void setup()
 {
@@ -252,42 +279,95 @@ void setup()
 	pinMode(dipSwitch1.pin2, INPUT_PULLUP);
 	pinMode(dipSwitch1.pin3, INPUT_PULLUP);
 	pinMode(dipSwitch1.pin4, INPUT_PULLUP);	
+	pinMode(limitSwitches.pin_left, INPUT_PULLUP);
+	pinMode(limitSwitches.pin_right, INPUT_PULLUP);
 	
+	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_LEFT), leftSpeedSensorInterrupt, RISING);  // Increase counter A when speed sensor pin goes High
+	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_RIGHT), rightSpeedSensorInterrupt, RISING);
+
 	Serial.begin(9600);
 	Serial.println("Starting...");
 	radioConfig();
 	Serial.println("Setup completed");
-	delay(100);
+	//delay(100);
 	
 
-	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_LEFT), leftSpeedSensorInterrupt, RISING);  // Increase counter A when speed sensor pin goes High
-	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_RIGHT), rightSpeedSensorInterrupt, RISING);
 
-	SerialTimer.setInterval(500, serialPrintSpeedMonitor);
-	SerialTimer1.setInterval(500, serialPrintStandard);
-	SerialTimerPID.setInterval(500, SerialPrintPID);
-	SpeedMonitorLeft.setInterval(500, countLeftSpeed);
-	SpeedMonitorRight.setInterval(500, countRightSpeed);
-	dipSwitchRead.setInterval(1000, dipSwitchReadEvent);
-	outputSpeed.setInterval(PWM_COMPUTE_PERIOD, computePWM);
-	PIDtimer.setInterval(PID_DT, computePID);
-	SendRadioTimer.setInterval(500, sendRadio);
-	CheckDistanceTimer.setInterval(250, CheckDistance);
-	SerialTimerSend.setInterval(500, SerialPrintSendMSG);
-	SerialTimerAutonomusMode.setInterval(500, SerialPrintControlsAutonomus);
+
 }
 
 void loop()
 {
 	// TIMERS
 	now = millis();
-	dipSwitchRead.run();
-	SpeedMonitorLeft.run();
-	SpeedMonitorRight.run();
-	//SendRadioTimer.run();
-	CheckDistanceTimer.run();
+	if (now - AliveTimer > 1000)
+	{
+		AliveTimer = now;
+		led_state_green = !led_state_green;
+	}
+
+	if (now - SerialTimer > 250)
+	{
+		SerialTimer = now;
+		serialPrintStandard();
+	}
+
+	if (now - RadioTimeoutTimer > 1000)
+			digitalWrite(R_LED, 1);
+		else
+			digitalWrite(R_LED, 0);	
+
+	if (now - RadioTimeoutTimer > 3000)
+	{
+		radioConfig();
+		RadioTimeoutTimer = now;
+	}
+
+
+	if (now - dipSwitchRead > 1000)
+	{
+		dipSwitchRead = now;
+		dipSwitchReadEvent();
+	}
+
+	if (now - SpeedMonitorLeft > 500)
+	{
+		SpeedMonitorLeft = now;
+		countLeftSpeed();
+	}
+
+	if (now - SpeedMonitorRight > 500)
+	{
+		SpeedMonitorRight = now;
+		countRightSpeed();
+	}
+
+	if (now - SendRadioTimer > 500)
+	{
+		SendRadioTimer = now;
+		sendRadio();
+	}
+	if (now - CheckDistanceTimer > 75)
+	{
+		CheckDistanceTimer = now;
+		CheckDistance();
+	}
+
+	/*
+	if (now - SerialPrintLimitSwitches > 500)
+	{
+		SerialPrintLimitSwitches = now;
+		Serial.print("Limit switches: ");
+		Serial.print(limitSwitches.left);
+		Serial.print(" ");
+		Serial.println(limitSwitches.right);
+	}
+	*/
+
+	/*
 	if (radio.isChipConnected() == 1 && chip_connected_last_state == 0)
 		radioConfig();
+	*/
 
 	// TESTS
 	/*analog_control_step = message_receive.rotory_encoder;
@@ -295,40 +375,58 @@ void loop()
 		analog_control_step = 200;
 		*/
 
+	// INPUTS
+	limitSwitches.left = !digitalRead(limitSwitches.pin_left);
+	limitSwitches.right = !digitalRead(limitSwitches.pin_right);
+
+
 	// OUTPUTS
 	digitalWrite(LEFT_LIGHT, analog_left_switch);
 	digitalWrite(RIGHT_LIGHT, analog_right_switch);
 
-	if (empty_receive_data == 1)
-		digitalWrite(R_LED, 1);
-	else
-		digitalWrite(R_LED, 0);
-
+	digitalWrite(G_LED, led_state_green);
 
 	// COMMUNICATION
 	readRadio(0, NOT_PRINTING);
 
 	// MEASURES
-	shunt_measure(CURRENT_MEASURE_PERIOD);
+	//shunt_measure(CURRENT_MEASURE_PERIOD);
 
 	// MOVE MOTORS
 	controlMotors();
 
+	/*
 	if (speed_left > 0 || speed_right > 0)
 	{
 		switch (control_mode)
 		{
 		case CONTROLS_STANDARD:
-			SerialTimer1.run();
+			if (now - SerialTimer1 > 500)
+			{
+				SerialTimer1 = now;
+				//serialPrintStandard();
+			}
 			break;
 		case CONTROLS_ENCHANCED:
-			SerialTimer1.run();
+			if (now - SerialTimer1 > 500)
+			{
+				SerialTimer1 = now;
+				//serialPrintStandard();
+			}
 			break;
 		case CONTROLS_MEASURED:
-			SerialTimerPID.run();
+			if (now - SerialTimerPID > 500)
+			{
+				SerialTimerPID = now;
+				//SerialPrintPID();
+			}
 			break;
 		case CONTROLS_AUTONOMUS:
-			SerialTimerAutonomusMode.run();
+			if (now - SerialTimerAutonomusMode > 500)
+			{
+				SerialTimerAutonomusMode = now;
+				//SerialPrintControlsAutonomus();
+			}
 			break;
 		}
 	}
@@ -336,16 +434,30 @@ void loop()
 	{
 		if (control_mode != CONTROLS_AUTONOMUS)
 		{
-			//SerialTimerSend.run();
-			SerialTimerAutonomusMode.run();
+			if (now - SerialTimerAutonomusMode > 500)
+			{
+				SerialTimerAutonomusMode = now;
+				//SerialPrintControlsAutonomus();
+			}			
 		}
 		else
-			SerialTimerAutonomusMode.run();
+			if (now - SerialTimerAutonomusMode > 500)
+			{
+				SerialTimerAutonomusMode = now;
+				//SerialPrintControlsAutonomus();
+			}
 	}
+	*/
+
+	//SERIAL DEBUG
+	//Serial.println(byte((now - RadioTimeoutTimer) ));
+
+	//WATCHDOGS
 
 
 	// -------------- END OPERATIONS ---------------------
-	chip_connected_last_state = radio.isChipConnected();
+	//chip_connected_last_state = radio.isChipConnected();
+	limitswitches_last = limitSwitches;
 }
 
 
@@ -426,5 +538,10 @@ void dipSwitchReadEvent()
 
 void CheckDistance()
 {
-	distance_measured = sonar.ping_cm();
+	int raw_data = sonar.ping_cm();
+	if (raw_data > 0)
+	{
+		distance_measured_last = distance_measured;
+		distance_measured = raw_data;
+	}	
 }
