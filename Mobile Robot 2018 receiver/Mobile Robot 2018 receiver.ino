@@ -15,7 +15,7 @@
 
 #define FWD 0
 #define BWD 1
-#define DEAD_ZONE 22
+#define DEAD_ZONE 40
 
 //TIMERS
 #define ONE_MS 1

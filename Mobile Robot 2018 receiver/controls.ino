@@ -2,7 +2,8 @@ void controls(byte control_type)
 {
 	if (message_receive.message_no != 0 && !empty_receive_data)
 	{
-		
+		float set_velo, set_velo_left, set_velo_right;
+		float steering_left, steering_right, steering;
 		switch (control_type)
 		{
 		case CONTROLS_NONE:
@@ -11,35 +12,34 @@ void controls(byte control_type)
 
 		case CONTROLS_STANDARD:
 			control_mode = CONTROLS_STANDARD;
-			const uint8_t dead_zone = 60;
-			float set_velo;
+			
 			switch (message_receive.analog_left_Y)
 			{
-			case 0 ... (127 - dead_zone):
-				set_velo = map(message_receive.analog_left_Y, 90, 0, 0, velocity_limit);
+			case 0 ... (127 - DEAD_ZONE):
+				set_velo = map(message_receive.analog_left_Y, 127 - DEAD_ZONE, 0, 0, velocity_limit);
 				LeftMotor.backward(set_velo, 1);
 				break;
 
-			case (127 - dead_zone + 1) ... (127 + dead_zone):
+			case (127 - DEAD_ZONE + 1) ... (127 + DEAD_ZONE):
 				LeftMotor.stop();
 				break;
-			case (127 + dead_zone + 1) ... 255:
-				set_velo = map(message_receive.analog_left_Y, 181, 255, 0, velocity_limit);
+			case (127 + DEAD_ZONE + 1) ... 255:
+				set_velo = map(message_receive.analog_left_Y, 127 + DEAD_ZONE + 1, 255, 0, velocity_limit);
 				LeftMotor.forward(velocity_limit, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
 				break;
 			}
 
 			switch (message_receive.analog_right_Y)
 			{
-			case 0 ... (127 - dead_zone) :
-				set_velo = map(message_receive.analog_right_Y, 90, 0, 0, velocity_limit);
+			case 0 ... (127 - DEAD_ZONE) :
+				set_velo = map(message_receive.analog_right_Y, 127 - DEAD_ZONE, 0, 0, velocity_limit);
 				RightMotor.backward(set_velo, 1);
 				break;
-			case (127 - dead_zone + 1) ... (127 + dead_zone) :
+			case (127 - DEAD_ZONE + 1) ... (127 + DEAD_ZONE) :
 				RightMotor.stop();
 				break;
-			case (127 + dead_zone + 1) ... 255:
-				set_velo = map(message_receive.analog_right_Y, 181, 255, 0, velocity_limit);
+			case (127 + DEAD_ZONE + 1) ... 255:
+				set_velo = map(message_receive.analog_right_Y, 127 + DEAD_ZONE + 1, 255, 0, velocity_limit);
 				RightMotor.forward(set_velo, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
 				break;
 			}
@@ -47,52 +47,54 @@ void controls(byte control_type)
 
 		case CONTROLS_ENCHANCED:
 			control_mode = CONTROLS_ENCHANCED;
-			
-			if (message_receive.analog_left_Y >= 0 && message_receive.analog_left_Y < (128 - DEAD_ZONE))
-			{			
-				speed_general = map(message_receive.analog_left_Y, 1, 85, velocity_limit, 1);
-				direction = BWD;			
-			}
-			if (message_receive.analog_left_Y >= (128 - DEAD_ZONE) && message_receive.analog_left_Y < (128 + DEAD_ZONE))
-			{		
-				speed_general = 0.0;				
-			}
-			if (message_receive.analog_left_Y >= (128 + DEAD_ZONE) && message_receive.analog_left_Y <= 255)
-			{			
-				speed_general = map(message_receive.analog_left_Y - 171, 1, 85, 1, velocity_limit);
-				direction = FWD;				
-			}
-			
-
-			
-			if (message_receive.potentiometer >= 0 && message_receive.potentiometer < (128 - DEAD_ZONE))
-			{			
-				steer_left = map(message_receive.potentiometer, 0, (128 - DEAD_ZONE), 0, 100);
-			}
-			if (message_receive.potentiometer >= (128 - DEAD_ZONE) && message_receive.potentiometer < (128 + DEAD_ZONE))
-			{			
-				steer_left = 100.0;
-				steer_right = 100.0;				
-			}
-			if (message_receive.potentiometer >= (128 + DEAD_ZONE) && message_receive.potentiometer <= 255)
+			switch (message_receive.analog_left_Y)
 			{
-				steer_right = map(message_receive.potentiometer, (128 + DEAD_ZONE), 255, 100, 0);
+				case 0 ... (127 - DEAD_ZONE) :
+					set_velo = map(message_receive.analog_left_Y, 127 - DEAD_ZONE, 0, 0, velocity_limit);
+					direction = BWD;
+					break;
+
+				case (127 - DEAD_ZONE + 1) ... (127 + DEAD_ZONE) :
+					LeftMotor.stop();
+					RightMotor.stop();
+					direction = FWD;
+					break;
+				case (127 + DEAD_ZONE + 1) ... 255:
+					set_velo = map(message_receive.analog_left_Y, 127 + DEAD_ZONE + 1, 255, 0, velocity_limit);
+					direction = FWD;
+					break;
+			}
+
+			switch (message_receive.analog_right_X)
+			{
+				case 0 ... (127 - DEAD_ZONE) :
+					steering_left = map(message_receive.analog_right_X, 127 - DEAD_ZONE, 0, 100, 1);
+					steering_right = 100.0;
+					break;
+
+				case (127 - DEAD_ZONE + 1) ... (127 + DEAD_ZONE) :
+					steering_left = 100.0;
+					steering_right = 100.0;
+					break;
+				case (127 + DEAD_ZONE + 1) ... 255:
+					steering_left = 100.0;
+					steering_right = map(message_receive.analog_right_X, 127 + DEAD_ZONE + 1, 255, 100, 1);
+					break;
+			}
+
+			set_velo_left = set_velo * (abs(steering_left) / 100);
+			set_velo_right = set_velo * (abs(steering_right) / 100);
+			if (direction == BWD)
+			{
+				LeftMotor.backward(set_velo_left, 1);
+				RightMotor.backward(set_velo_right, 1);
+			}
+			else if (direction == FWD)
+			{
+				LeftMotor.forward(set_velo_left, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
+				RightMotor.forward(set_velo_right, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
 			}
 			
-
-			speed_left = speed_general * steer_left / 100;
-			speed_right = speed_general * steer_right / 100;
-
-			if (direction == FWD)
-			{
-				LeftMotor.forward((short)speed_left, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
-				RightMotor.forward((short)speed_right, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
-			}
-			else if (direction == BWD)
-			{
-				LeftMotor.backward((short)speed_left, 1);
-				RightMotor.backward((short)speed_right, 1);
-			}
 			break;
 
 		case CONTROLS_MEASURED:

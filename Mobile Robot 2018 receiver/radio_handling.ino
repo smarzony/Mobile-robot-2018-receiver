@@ -57,7 +57,7 @@ void readRadio(int period, bool printing)
 		analog_right_switch = bitRead(message_receive.bit_array, 2);
 		rotory_encoder_switch = bitRead(message_receive.bit_array, 3);			
 		if (map(message_receive.potentiometer, 0, 255, 0, 100) > 20)
-			velocity_limit = float(map(message_receive.potentiometer, 0, 255, 0, 100));
+			velocity_limit = float(map(message_receive.potentiometer, 0, 255, 0, 255));
 		else
 			velocity_limit = 0.0;
 
