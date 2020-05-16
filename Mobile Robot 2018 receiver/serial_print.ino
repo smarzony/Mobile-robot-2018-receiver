@@ -2,7 +2,7 @@
 void serialPrintStandard()
 {
 
-	String output = "[XL YL XR YR MSG CTRL SS] = ";
+	String output = "[XL YL XR YR MSG CTRL AL AR] = ";
 	output += message_receive.analog_left_X;
 	output += ' ';
 	output += message_receive.analog_left_Y;
@@ -15,10 +15,12 @@ void serialPrintStandard()
 	output += ' ';
 	output += message_receive.control_mode;
 	output += ' ';
-	output += side_switch;
+	output += analog_left_switch;
+	output += ' ';
+	output += analog_right_switch;
+
 
 	Serial.println(output);
-
 }
 void serialPrintSpeedMonitor()
 {

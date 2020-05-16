@@ -303,6 +303,9 @@ void setup()
 
 void loop()
 {
+	bool analog_left_switch_buffer = analog_left_switch;
+	bool analog_right_switch_buffer = analog_right_switch;
+
 	// TIMERS
 	now = millis();
 	if (now - AliveTimer > 1000)
@@ -358,68 +361,61 @@ void loop()
 		CheckDistance();
 	}
 
-	/*
-	if (now - SerialPrintLimitSwitches > 500)
-	{
-		SerialPrintLimitSwitches = now;
-		Serial.print("Limit switches: ");
-		Serial.print(limitSwitches.left);
-		Serial.print(" ");
-		Serial.println(limitSwitches.right);
-	}
-	*/
-
-	/*
-	if (radio.isChipConnected() == 1 && chip_connected_last_state == 0)
-		radioConfig();
-	*/
-
-	// TESTS
-	/*analog_control_step = message_receive.rotory_encoder;
-	if (analog_control_step > 200)
-		analog_control_step = 200;
-		*/
-
 	// INPUTS
 	limitSwitches.left = !digitalRead(limitSwitches.pin_left);
 	limitSwitches.right = !digitalRead(limitSwitches.pin_right);
 
-	if (analog_left_switch_last != analog_left_switch && analog_left_switch == true)
+	// OUTPUTS
+	digitalWrite(LEFT_LIGHT, analog_left_switch);
+	digitalWrite(RIGHT_LIGHT, analog_right_switch);
+
+	if (analog_left_switch_buffer != analog_left_switch_last)
 	{
-		play_tone_OK = true;
+		PlayToneNGTimer = now;
+		play_tone_NG = true;
+	}
+
+	if (play_tone_NG)
+	{
+		if (now - PlayToneNGTimer < 400)
+		{
+			analogWrite(BUZZER_PIN, 10);
+		}
+		if (now - PlayToneNGTimer >= 400)
+		{
+			analogWrite(BUZZER_PIN, 0);
+			play_tone_NG = false;
+		}
+	}
+
+	if (analog_right_switch_buffer != analog_right_switch_last)
+	{
 		PlayToneOKTimer = now;
+		play_tone_OK = true;
 	}
 
 	if (play_tone_OK)
 	{
-		if (now - PlayToneOKTimer < 250)
+		if (now - PlayToneOKTimer < 150)
 		{
-			//tone(BUZZER_PIN, 440);
-			digitalWrite(BUZZER_PIN, HIGH);
+			analogWrite(BUZZER_PIN, 10);
 		}
-		if (now - PlayToneOKTimer >= 250 && now - PlayToneOKTimer < 500)
+		if (now - PlayToneOKTimer >= 150 && now - PlayToneOKTimer < 200)
 		{
-			//tone(BUZZER_PIN, 523);
-			digitalWrite(BUZZER_PIN, LOW);
+			analogWrite(BUZZER_PIN, 0);
 		}
-		if (now - PlayToneOKTimer >= 500 && now - PlayToneOKTimer < 750)
+		if (now - PlayToneOKTimer >= 200 && now - PlayToneOKTimer < 350)
 		{
-			//tone(BUZZER_PIN, 440);
-			digitalWrite(BUZZER_PIN, HIGH);
+			analogWrite(BUZZER_PIN, 10);
 		}
-		if (now - PlayToneOKTimer >= 750)
+		if (now - PlayToneOKTimer >= 350)
 		{
-			//noTone(BUZZER_PIN);
-			digitalWrite(BUZZER_PIN, LOW);
+			analogWrite(BUZZER_PIN, 0);
 			play_tone_OK = false;
-		}		
+		}
 	}
+		
 
-
-	// OUTPUTS
-
-	digitalWrite(LEFT_LIGHT, analog_left_switch);
-	digitalWrite(RIGHT_LIGHT, analog_right_switch);
 
 	digitalWrite(G_LED, led_state_green);
 
@@ -432,59 +428,7 @@ void loop()
 	// MOVE MOTORS
 	controlMotors();
 
-	/*
-	if (speed_left > 0 || speed_right > 0)
-	{
-		switch (control_mode)
-		{
-		case CONTROLS_STANDARD:
-			if (now - SerialTimer1 > 500)
-			{
-				SerialTimer1 = now;
-				//serialPrintStandard();
-			}
-			break;
-		case CONTROLS_ENCHANCED:
-			if (now - SerialTimer1 > 500)
-			{
-				SerialTimer1 = now;
-				//serialPrintStandard();
-			}
-			break;
-		case CONTROLS_MEASURED:
-			if (now - SerialTimerPID > 500)
-			{
-				SerialTimerPID = now;
-				//SerialPrintPID();
-			}
-			break;
-		case CONTROLS_AUTONOMUS:
-			if (now - SerialTimerAutonomusMode > 500)
-			{
-				SerialTimerAutonomusMode = now;
-				//SerialPrintControlsAutonomus();
-			}
-			break;
-		}
-	}
-	else
-	{
-		if (control_mode != CONTROLS_AUTONOMUS)
-		{
-			if (now - SerialTimerAutonomusMode > 500)
-			{
-				SerialTimerAutonomusMode = now;
-				//SerialPrintControlsAutonomus();
-			}			
-		}
-		else
-			if (now - SerialTimerAutonomusMode > 500)
-			{
-				SerialTimerAutonomusMode = now;
-				//SerialPrintControlsAutonomus();
-			}
-	}
-	*/
+	
 
 	//SERIAL DEBUG
 	//Serial.println(byte((now - RadioTimeoutTimer) ));
@@ -495,67 +439,9 @@ void loop()
 	// -------------- END OPERATIONS ---------------------
 	//chip_connected_last_state = radio.isChipConnected();
 	limitswitches_last = limitSwitches;
-	analog_left_switch_last = analog_left_switch;
-	analog_right_switch_last = analog_right_switch;
+	analog_left_switch_last = analog_left_switch_buffer;
+	analog_right_switch_last = analog_right_switch_buffer;
 }
-
-
-
-/*
-void analogCalibration(unsigned long long now, int time, short &leftYrestpos, short &leftXrestpos, short &rightYrestpos, short &rightXrestpos, bool &printed)
-{
-	if (time > now)
-	{
-		CircBuffer(cBufanalogLeftY, incoming_message[ANALOG_LEFT_Y], sizeof(cBufanalogLeftY));
-		CircBuffer(cBufanalogLeftX, incoming_message[ANALOG_LEFT_X], sizeof(cBufanalogLeftX));
-		CircBuffer(cBufanalogRightY, incoming_message[ANALOG_RIGHT_Y], sizeof(cBufanalogRightY));
-		CircBuffer(cBufanalogRightX, incoming_message[ANALOG_RIGHT_X], sizeof(cBufanalogRightX));
-	}
-	if (time < now && printed == false)
-	{
-		short sum;
-		for (int i = 0; i < sizeof(cBufanalogLeftY) - 1; i++)
-		{
-			sum = sum + cBufanalogLeftY[i];
-		}
-		leftYrestpos = sum / sizeof(cBufanalogLeftY);
-		sum = 0;
-
-		for (int i = 0; i < sizeof(cBufanalogLeftX) - 1; i++)
-		{
-			sum = sum + cBufanalogLeftX[i];
-		}
-		leftXrestpos = sum / sizeof(cBufanalogLeftX);
-		sum = 0;
-
-		for (int i = 0; i < sizeof(cBufanalogRightY) - 1; i++)
-		{
-			sum = sum + cBufanalogRightY[i];
-		}
-		rightYrestpos = sum / sizeof(cBufanalogRightY);
-		sum = 0;
-
-		for (int i = 0; i < sizeof(cBufanalogRightX) - 1; i++)
-		{
-			sum = sum + cBufanalogRightX[i];
-		}
-		rightXrestpos = sum / sizeof(cBufanalogRightX);
-		sum = 0;
-
-		Serial.print("Calibration done: ");
-		Serial.print(leftYrestpos);
-		Serial.print(' ');
-		Serial.print(leftXrestpos);
-		Serial.print(' ');
-		Serial.print(rightYrestpos);
-		Serial.print(' ');
-		Serial.print(rightXrestpos);
-		Serial.print('\n');
-
-		printed = true;
-	}
-}
-*/
 
 /*
 void SerialDummy()
