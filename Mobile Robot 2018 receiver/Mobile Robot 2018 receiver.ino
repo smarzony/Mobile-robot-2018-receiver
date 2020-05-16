@@ -3,6 +3,7 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 
+
 //SWITCHES
 #define RADIO_PRINT_INCOMING_MESSAGE 1
 
@@ -35,7 +36,7 @@
 #define SHUNT_PIN_MINUS A2
 #define TRIGGER_PIN 14
 #define ECHO_PIN 15
-
+#define BUZZER_PIN 4
 #define SPEED_SENSOR_LEFT 3
 #define SPEED_SENSOR_RIGHT 2
 
@@ -167,8 +168,9 @@ unsigned long long SerialTimer,
 			SerialTimerAutonomusMode, 
 			SerialPrintLimitSwitches,
 			RadioTimeoutTimer,
-			AliveTimer;
-			
+			AliveTimer,
+			PlayToneOKTimer,
+			PlayToneNGTimer;			
 
 unsigned long long  Autonomous_wait_to_go_bwd;
 
@@ -227,6 +229,12 @@ bool side_switch,
 	analog_right_switch, 
 	rotory_encoder_switch;
 
+bool analog_left_switch_last,
+	analog_right_switch_last;
+
+bool play_tone_OK,
+	play_tone_NG;
+
 
 //robot control variables
 short cBufanalogRightX[ANALOG_CALIBRATION],
@@ -271,6 +279,7 @@ void setup()
 	pinMode(R_LED, OUTPUT);
 	pinMode(B_LED, OUTPUT);
 	pinMode(G_LED, OUTPUT);
+	pinMode(BUZZER_PIN, OUTPUT);
 	pinMode(LEFT_LIGHT, OUTPUT);
 	pinMode(RIGHT_LIGHT, OUTPUT);
 	pinMode(SPEED_SENSOR_LEFT, INPUT_PULLUP);
@@ -290,10 +299,6 @@ void setup()
 	radioConfig();
 	Serial.println("Setup completed");
 	//delay(100);
-	
-
-
-
 }
 
 void loop()
@@ -379,8 +384,40 @@ void loop()
 	limitSwitches.left = !digitalRead(limitSwitches.pin_left);
 	limitSwitches.right = !digitalRead(limitSwitches.pin_right);
 
+	if (analog_left_switch_last != analog_left_switch && analog_left_switch == true)
+	{
+		play_tone_OK = true;
+		PlayToneOKTimer = now;
+	}
+
+	if (play_tone_OK)
+	{
+		if (now - PlayToneOKTimer < 250)
+		{
+			//tone(BUZZER_PIN, 440);
+			digitalWrite(BUZZER_PIN, HIGH);
+		}
+		if (now - PlayToneOKTimer >= 250 && now - PlayToneOKTimer < 500)
+		{
+			//tone(BUZZER_PIN, 523);
+			digitalWrite(BUZZER_PIN, LOW);
+		}
+		if (now - PlayToneOKTimer >= 500 && now - PlayToneOKTimer < 750)
+		{
+			//tone(BUZZER_PIN, 440);
+			digitalWrite(BUZZER_PIN, HIGH);
+		}
+		if (now - PlayToneOKTimer >= 750)
+		{
+			//noTone(BUZZER_PIN);
+			digitalWrite(BUZZER_PIN, LOW);
+			play_tone_OK = false;
+		}		
+	}
+
 
 	// OUTPUTS
+
 	digitalWrite(LEFT_LIGHT, analog_left_switch);
 	digitalWrite(RIGHT_LIGHT, analog_right_switch);
 
@@ -458,6 +495,8 @@ void loop()
 	// -------------- END OPERATIONS ---------------------
 	//chip_connected_last_state = radio.isChipConnected();
 	limitswitches_last = limitSwitches;
+	analog_left_switch_last = analog_left_switch;
+	analog_right_switch_last = analog_right_switch;
 }
 
 
