@@ -1,5 +1,16 @@
+uint8_t distance_limit()
+{
+	if (measured_speed_left < 10 || measured_speed_right < 10)
+		return 10;
+	else if (measured_speed_left >= 10 && measured_speed_right >= 10)
+		return 30;
+	else if (measured_speed_left >= 20 && measured_speed_right >= 20)
+		return 40;
+}
+
 void controls(byte control_type)
 {
+	uint8_t limit = distance_limit();
 	if (message_receive.message_no != 0 && !empty_receive_data)
 	{
 		float set_velo, set_velo_left, set_velo_right;
@@ -25,7 +36,7 @@ void controls(byte control_type)
 				break;
 			case (127 + DEAD_ZONE + 1) ... 255:
 				set_velo = map(message_receive.analog_left_Y, 127 + DEAD_ZONE + 1, 255, 0, velocity_limit);
-				LeftMotor.forward(velocity_limit, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
+				LeftMotor.forward(velocity_limit, !limitSwitches.left && !limitSwitches.right && (distance_measured > limit));
 				break;
 			}
 
@@ -40,7 +51,7 @@ void controls(byte control_type)
 				break;
 			case (127 + DEAD_ZONE + 1) ... 255:
 				set_velo = map(message_receive.analog_right_Y, 127 + DEAD_ZONE + 1, 255, 0, velocity_limit);
-				RightMotor.forward(set_velo, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
+				RightMotor.forward(set_velo, !limitSwitches.left && !limitSwitches.right && (distance_measured > limit));
 				break;
 			}
 			break;
@@ -91,8 +102,8 @@ void controls(byte control_type)
 			}
 			else if (direction == FWD)
 			{
-				LeftMotor.forward(set_velo_left, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
-				RightMotor.forward(set_velo_right, !limitSwitches.left && !limitSwitches.right && (distance_measured > 10));
+				LeftMotor.forward(set_velo_left, !limitSwitches.left && !limitSwitches.right && (distance_measured > limit));
+				RightMotor.forward(set_velo_right, !limitSwitches.left && !limitSwitches.right && (distance_measured > limit));
 			}
 			
 			break;
