@@ -1,0 +1,6 @@
+{
+    "configuration": "cpu=atmega2560",
+    "board": "arduino:avr:mega",
+    "port": "COM8",
+    "sketch": "Mobile_Robot_2018_receiver.ino"
+}
