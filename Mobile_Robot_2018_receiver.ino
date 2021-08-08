@@ -3,9 +3,7 @@
 #include <nRF24L01.h>
 #include <RF24.h>
 #include <QMC5883LCompass.h>
-
-
-
+#include <TinyGPS++.h>
 
 //SWITCHES
 #define RADIO_PRINT_INCOMING_MESSAGE 1
@@ -115,7 +113,7 @@ struct PIDstruct {
 };
 
 struct radioDataReceive {
-  byte analog_left_X,
+  uint8_t analog_left_X,
        analog_left_Y,
        analog_right_X,
        analog_right_Y,
@@ -130,7 +128,7 @@ struct radioDataReceive {
 };
 
 struct radioDataTransmit {
-  byte velocity_measured_left,
+  uint8_t velocity_measured_left,
        velocity_measured_right,
        distance,
        control_mode,
@@ -144,10 +142,10 @@ struct radioDataTransmit {
 
 struct dipSwitch
 {
-	byte pin1 = 26;	
-	byte pin2 = 27;	
-	byte pin3 = 28;	
-	byte pin4 = 29;
+	uint8_t pin1 = 26;	
+	uint8_t pin2 = 27;	
+	uint8_t pin3 = 28;	
+	uint8_t pin4 = 29;
 
 	bool pin1_state,
 		pin2_state,
@@ -157,10 +155,10 @@ struct dipSwitch
 
 struct limitSwitch
 {
-	byte pin_left = LIMIT_SWITCH_LEFT;
-	byte pin_right = LIMIT_SWITCH_RIGHT;
-	byte pin_spare00 = 0;
-	byte pin_spare01 = 0;
+	uint8_t pin_left = LIMIT_SWITCH_LEFT;
+	uint8_t pin_right = LIMIT_SWITCH_RIGHT;
+	uint8_t pin_spare00 = 0;
+	uint8_t pin_spare01 = 0;
 
 	bool left,
 		right,
@@ -193,6 +191,7 @@ unsigned long long SerialTimer,
 
 unsigned long long  Autonomous_wait_to_go_bwd;
 
+TinyGPSPlus gps;
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, 200);
 QMC5883LCompass compass;
 
@@ -202,13 +201,13 @@ radioDataReceive message_receive;
 radioDataTransmit message_transmit;
 
 RF24 radio(CE, CSN);
-const byte rxAddr[6] = { '1','N','o','d','e','1' };
-const byte txAddr[6] = { '1','N','o','d','e','2' };
+const uint8_t rxAddr[6] = { '1','N','o','d','e','1' };
+const uint8_t txAddr[6] = { '1','N','o','d','e','2' };
 bool empty_receive_data;
 bool chip_connected_last_state;
 
-bool radio_not_availalble_counter;
-byte incoming_message[6];
+uint8_t radio_not_availalble_counter;
+uint8_t incoming_message[6];
 short last_message_no, current_message_no, messages_lost;
 bool radio_not_availalble = 1;
 
@@ -237,11 +236,11 @@ float integralLimit = 175.0;
 */
 
 
-byte speed_left_count;
-byte speed_right_count;
-byte measured_speed_left;
-byte measured_speed_right;
-byte control_mode;
+uint8_t speed_left_count;
+uint8_t speed_right_count;
+uint8_t measured_speed_left;
+uint8_t measured_speed_right;
+uint8_t control_mode;
 
 
 bool side_switch, 
@@ -286,10 +285,10 @@ float current_shunt;
 float average_current;
 
 //distance measure
-byte distance_measured, distance_measured_last;
+uint8_t distance_measured, distance_measured_last;
 
 //SERIAL MODE
-byte serial_mode = SPEED_MONITORING;
+uint8_t serial_mode = SPEED_MONITORING;
 
 // RGB LED
 bool led_state_green;
@@ -317,7 +316,8 @@ void setup()
 	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_LEFT), leftSpeedSensorInterrupt, RISING);  // Increase counter A when speed sensor pin goes High
 	attachInterrupt(digitalPinToInterrupt(SPEED_SENSOR_RIGHT), rightSpeedSensorInterrupt, RISING);
 
-	Serial.begin(9600);
+	Serial.begin(115200);
+	Serial2.begin(9600);
 	Serial.println("Starting...");
 	radioConfig();
 	compass.init();
@@ -331,7 +331,13 @@ void loop()
 	bool analog_left_switch_buffer = analog_left_switch;
 	bool analog_right_switch_buffer = analog_right_switch;
 
-	
+	if (Serial2.available() > 0)
+	{
+		if (gps.encode(Serial2.read()))
+		displayInfo();
+	}
+
+
 	// TIMERS
 	now = millis();
 	if (now - last_azimuth_timer > 50)
@@ -359,7 +365,7 @@ void loop()
 	if (now - SerialTimer > 250)
 	{
 		SerialTimer = now;
-		serialPrintStandard();
+		// serialPrintStandard();
 		// SerialPrintByteArray();
 	}
 
@@ -469,7 +475,7 @@ void loop()
 	
 
 	//SERIAL DEBUG
-	//Serial.println(byte((now - RadioTimeoutTimer) ));
+	//Serial.println(uint8_t((now - RadioTimeoutTimer) ));
 
 	//WATCHDOGS
 
@@ -488,6 +494,58 @@ void SerialDummy()
 	Serial.println(millis() / 1000);
 }
 */
+
+void displayInfo()
+{
+  Serial.print(F("Location: ")); 
+  if (gps.location.isValid())
+  {
+    Serial.print(gps.location.lat(), 6);
+    Serial.print(F(","));
+    Serial.print(gps.location.lng(), 6);
+    
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+  }
+
+  Serial.print(F("  Date/Time: "));
+  if (gps.date.isValid())
+  {
+    Serial.print(gps.date.month());
+    Serial.print(F("/"));
+    Serial.print(gps.date.day());
+    Serial.print(F("/"));
+    Serial.print(gps.date.year());
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+  }
+
+  Serial.print(F(" "));
+  if (gps.time.isValid())
+  {
+    if (gps.time.hour() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.hour());
+    Serial.print(F(":"));
+    if (gps.time.minute() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.minute());
+    Serial.print(F(":"));
+    if (gps.time.second() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.second());
+    Serial.print(F("."));
+    if (gps.time.centisecond() < 10) Serial.print(F("0"));
+    Serial.print(gps.time.centisecond());
+  }
+  else
+  {
+    Serial.print(F("INVALID"));
+  }
+
+  Serial.println();
+}
 
 void dipSwitchReadEvent()
 {

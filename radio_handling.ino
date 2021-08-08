@@ -17,8 +17,8 @@ void radioConfig()
 
 void sendRadio()
 {		
-	message_transmit.velocity_measured_left = (byte)measured_speed_left;
-	message_transmit.velocity_measured_right = (byte)measured_speed_right;
+	message_transmit.velocity_measured_left = (uint8_t)measured_speed_left;
+	message_transmit.velocity_measured_right = (uint8_t)measured_speed_right;
 	message_transmit.distance = distance_measured;
 	message_transmit.control_mode = control_mode;
 	message_transmit.azimuth1 = machine_state.azimuth & 0xFF;
@@ -26,7 +26,7 @@ void sendRadio()
 
 	if ((now - RadioTimeoutTimer) < 255)
 	{
-		message_transmit.time_delay = byte((now - RadioTimeoutTimer));
+		message_transmit.time_delay = uint8_t((now - RadioTimeoutTimer));
 	}
 	else
 		message_transmit.time_delay = 255;

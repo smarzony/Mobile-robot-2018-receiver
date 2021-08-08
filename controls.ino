@@ -8,7 +8,7 @@ uint8_t distance_limit()
 		return 40;
 }
 
-void controls(byte control_type)
+void controls(uint8_t control_type)
 {
 	uint8_t limit = distance_limit();
 	if (message_receive.message_no != 0 && !empty_receive_data)

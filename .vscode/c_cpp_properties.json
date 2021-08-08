@@ -3,10 +3,8 @@
     "configurations": [
         {
             "name": "Arduino",
-            "compilerPath": "D:\\Programy\\Arduino_SSD\\hardware\\tools\\avr\\bin\\avr-g++",
+            "compilerPath": "C:\\Program Files (x86)\\Arduino\\hardware\\tools\\avr\\bin\\avr-g++",
             "compilerArgs": [
-                "-Wall",
-                "-Wextra",
                 "-std=gnu++11",
                 "-fpermissive",
                 "-fno-exceptions",
@@ -17,25 +15,26 @@
             ],
             "intelliSenseMode": "gcc-x64",
             "includePath": [
-                "D:\\Programy\\Arduino_SSD\\hardware\\arduino\\avr\\cores\\arduino",
-                "D:\\Programy\\Arduino_SSD\\hardware\\arduino\\avr\\variants\\mega",
-                "C:\\Users\\Piotr\\Documents\\Arduino\\libraries\\NewPing\\src",
-                "D:\\Programy\\Arduino_SSD\\hardware\\arduino\\avr\\libraries\\SPI\\src",
-                "C:\\Users\\Piotr\\Documents\\Arduino\\libraries\\RF24",
-                "C:\\Users\\Piotr\\Documents\\Arduino\\libraries\\QMC5883LCompass\\src",
-                "D:\\Programy\\Arduino_SSD\\hardware\\arduino\\avr\\libraries\\Wire\\src",
-                "d:\\programy\\arduino_ssd\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include",
-                "d:\\programy\\arduino_ssd\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include-fixed",
-                "d:\\programy\\arduino_ssd\\hardware\\tools\\avr\\avr\\include"
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\variants\\mega",
+                "C:\\Users\\User\\Documents\\Arduino\\libraries\\NewPing\\src",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries\\SPI\\src",
+                "C:\\Users\\User\\Documents\\Arduino\\libraries\\RF24",
+                "C:\\Users\\User\\Documents\\Arduino\\libraries\\QMC5883LCompass\\src",
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\libraries\\Wire\\src",
+                "C:\\Users\\User\\Documents\\Arduino\\libraries\\TinyGPSPlus-master\\src",
+                "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include",
+                "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\lib\\gcc\\avr\\7.3.0\\include-fixed",
+                "c:\\program files (x86)\\arduino\\hardware\\tools\\avr\\avr\\include"
             ],
             "forcedInclude": [
-                "D:\\Programy\\Arduino_SSD\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
+                "C:\\Program Files (x86)\\Arduino\\hardware\\arduino\\avr\\cores\\arduino\\Arduino.h"
             ],
             "cStandard": "c11",
             "cppStandard": "c++11",
             "defines": [
                 "F_CPU=16000000L",
-                "ARDUINO=10813",
+                "ARDUINO=10815",
                 "ARDUINO_AVR_MEGA2560",
                 "ARDUINO_ARCH_AVR",
                 "__DBL_MIN_EXP__=(-125)",

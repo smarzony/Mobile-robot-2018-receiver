@@ -76,7 +76,7 @@ void SerialPrintPID()
 	output += DEAD_ZONE\t;
 	*/
 	output += "velo = [";
-	output += (byte)speed_general;
+	output += (uint8_t)speed_general;
 	output += ", ";
 	output += measured_speed_left;
 	output += ", ";
@@ -86,17 +86,17 @@ void SerialPrintPID()
 	output += ", ";
 	output += pid.errorRight;
 	output += "]\tI =[";
-	output += (byte)pid.integralLeft;
+	output += (uint8_t)pid.integralLeft;
 	output += ", ";
-	output += (byte)pid.integralRight;
+	output += (uint8_t)pid.integralRight;
 	output += "]\td = [";
-	output += (byte)pid.differentialLeft;
+	output += (uint8_t)pid.differentialLeft;
 	output += ", ";
-	output += (byte)pid.differentialRight;
+	output += (uint8_t)pid.differentialRight;
 	output += "]\tPWM = [";
-	output += (byte)PWM_left_motor;
+	output += (uint8_t)PWM_left_motor;
 	output += ", ";
-	output += (byte)PWM_right_motor;
+	output += (uint8_t)PWM_right_motor;
 	output += "]";
 
 
