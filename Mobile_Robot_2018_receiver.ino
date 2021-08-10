@@ -70,6 +70,12 @@
 #define STANDARD 0
 #define SPEED_MONITORING 1
 
+union u_double
+{
+    double  dbl;
+    char    data[sizeof(double)];
+};
+
 class Motor
 {
 public:
@@ -94,6 +100,8 @@ struct machineState {
     uint8_t steering;
     uint8_t steering_direction;
 	uint16_t azimuth;
+	double latitude;
+	double longtitude;
 };
 
 struct PIDstruct {
@@ -135,9 +143,9 @@ struct radioDataTransmit {
        time_delay,
        azimuth1,
        azimuth2,
-       reserved7,
-       reserved8,
        message_no;
+  uint8_t pos_lat[4];
+  uint8_t pos_long[4];       
 };
 
 struct dipSwitch
@@ -186,7 +194,9 @@ unsigned long long SerialTimer,
 			AliveTimer,
 			PlayToneOKTimer,
 			PlayToneNGTimer,
-			CameraOnTimer;
+			CameraOnTimer,
+			GPSTimer;
+
 
 
 unsigned long long  Autonomous_wait_to_go_bwd;
@@ -199,6 +209,8 @@ machineState machine_state;
 //radio variables
 radioDataReceive message_receive;
 radioDataTransmit message_transmit;
+union u_double position_latitude;
+union u_double position_longtitude;
 
 RF24 radio(CE, CSN);
 const uint8_t rxAddr[6] = { '1','N','o','d','e','1' };
@@ -333,26 +345,39 @@ void loop()
 
 	if (Serial2.available() > 0)
 	{
-		if (gps.encode(Serial2.read()))
-		displayInfo();
+		gps.encode(Serial2.read());		
 	}
-
 
 	// TIMERS
 	now = millis();
-	if (now - last_azimuth_timer > 50)
+	if (now - last_azimuth_timer > 1000)	
 	{
+		last_azimuth_timer = now;
 		// Read compass values
 		compass.read();
 
 		// Return Azimuth reading
 		machine_state.azimuth = compass.getAzimuth();
 
-		// char myArray[3];
-		// compass.getDirection(myArray, a);
-		
-		// Serial.print("A: ");
-		// Serial.print(a);
+	}
+
+	if (now - GPSTimer > 1000)
+	{
+		GPSTimer = now;
+		if (gps.location.isValid())
+		{
+			position_latitude.dbl = gps.location.lat();
+			position_longtitude.dbl = gps.location.lng();
+			Serial.print(position_latitude.dbl, 8);
+			Serial.print("\t");
+			Serial.println(position_longtitude.dbl, 8);
+		} 
+		else //if (gps.location.age() > 1500)
+		{
+			position_latitude.dbl = 0;
+			position_longtitude.dbl = 0;
+			Serial.print("GPS fix lost");
+		}
 	}
 
 
@@ -494,58 +519,6 @@ void SerialDummy()
 	Serial.println(millis() / 1000);
 }
 */
-
-void displayInfo()
-{
-  Serial.print(F("Location: ")); 
-  if (gps.location.isValid())
-  {
-    Serial.print(gps.location.lat(), 6);
-    Serial.print(F(","));
-    Serial.print(gps.location.lng(), 6);
-    
-  }
-  else
-  {
-    Serial.print(F("INVALID"));
-  }
-
-  Serial.print(F("  Date/Time: "));
-  if (gps.date.isValid())
-  {
-    Serial.print(gps.date.month());
-    Serial.print(F("/"));
-    Serial.print(gps.date.day());
-    Serial.print(F("/"));
-    Serial.print(gps.date.year());
-  }
-  else
-  {
-    Serial.print(F("INVALID"));
-  }
-
-  Serial.print(F(" "));
-  if (gps.time.isValid())
-  {
-    if (gps.time.hour() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.hour());
-    Serial.print(F(":"));
-    if (gps.time.minute() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.minute());
-    Serial.print(F(":"));
-    if (gps.time.second() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.second());
-    Serial.print(F("."));
-    if (gps.time.centisecond() < 10) Serial.print(F("0"));
-    Serial.print(gps.time.centisecond());
-  }
-  else
-  {
-    Serial.print(F("INVALID"));
-  }
-
-  Serial.println();
-}
 
 void dipSwitchReadEvent()
 {

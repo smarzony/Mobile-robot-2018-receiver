@@ -24,6 +24,22 @@ void sendRadio()
 	message_transmit.azimuth1 = machine_state.azimuth & 0xFF;
 	message_transmit.azimuth2 = (machine_state.azimuth >> 8) & 0xFF;
 
+	message_transmit.pos_lat[0] = position_latitude.data[0];
+	message_transmit.pos_lat[1] = position_latitude.data[1];
+	message_transmit.pos_lat[2] = position_latitude.data[2];
+	message_transmit.pos_lat[3] = position_latitude.data[3];
+
+	message_transmit.pos_long[0] = position_longtitude.data[0];
+	message_transmit.pos_long[1] = position_longtitude.data[1];
+	message_transmit.pos_long[2] = position_longtitude.data[2];
+	message_transmit.pos_long[3] = position_longtitude.data[3];
+
+
+
+	// message_transmit.longtitude = machine_state.longtitude;
+
+
+
 	if ((now - RadioTimeoutTimer) < 255)
 	{
 		message_transmit.time_delay = uint8_t((now - RadioTimeoutTimer));

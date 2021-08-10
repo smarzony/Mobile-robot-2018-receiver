@@ -2,3 +2,4 @@
 *.png
 *.js
 *.json
+/build/
